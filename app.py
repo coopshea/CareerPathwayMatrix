@@ -8,7 +8,7 @@ from roadmaps import roadmap_generator_page
 from ai_roadmap import ai_roadmap_generator_page
 from job_postings import job_posting_page
 from skills_analysis import skills_analysis_page
-from skill_tree import skill_tree_page
+from skill_pathway import skill_pathway_page
 from utils import create_pathway_card, DEFAULT_IMAGES
 
 # Configure page
@@ -30,7 +30,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Create tabs for different sections
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(["2x2 Matrix Explorer", "Find Your Pathway", "Basic Roadmap", "AI Roadmap Generator", "Add Job Posting", "Skills Analysis", "Skill Tree", "About"])
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(["2x2 Matrix Explorer", "Find Your Pathway", "Basic Roadmap", "AI Roadmap Generator", "Add Job Posting", "Skills Analysis", "Skill Pathway", "About"])
 
 with tab1:
     st.write("## Explore Career Pathways on a 2x2 Matrix")
@@ -333,8 +333,8 @@ with tab6:
     skills_analysis_page()
     
 with tab7:
-    # Skill Tree Tab
-    skill_tree_page()
+    # Skill Pathway Tab
+    skill_pathway_page()
     
 with tab8:
     st.image(DEFAULT_IMAGES["data_viz_concept"], use_container_width=True)
