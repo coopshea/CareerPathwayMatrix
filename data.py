@@ -1,5 +1,6 @@
 import pandas as pd
 import json
+import os
 
 def load_data():
     """
@@ -8,6 +9,25 @@ def load_data():
     Returns:
         tuple: (pathways_dataframe, metrics_info, categories_list)
     """
+    # Check if the simpler data file exists
+    use_simpler_data = os.path.exists('simplerData.py')
+    
+    # If simpler data exists, load it
+    if use_simpler_data:
+        try:
+            with open('simplerData.py', 'r') as file:
+                simpler_data = eval(file.read())
+                metrics_data = simpler_data.get('metrics', {})
+                categories = simpler_data.get('categories', [])
+                pathways_data = simpler_data.get('pathways', [])
+                
+                # Convert to DataFrame and return early
+                pathways_df = pd.DataFrame(pathways_data)
+                return pathways_df, metrics_data, categories
+        except Exception as e:
+            print(f"Error loading simplerData.py: {e}")
+            print("Falling back to default data...")
+    
     # Hard-coding the metrics data structure based on the provided sample
     metrics_data = {
         "risk_level": {
