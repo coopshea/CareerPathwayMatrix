@@ -1,6 +1,7 @@
 import pandas as pd
 import json
 import os
+from database import init_and_load_data, test_connection
 
 def load_data():
     """
@@ -9,10 +10,17 @@ def load_data():
     Returns:
         tuple: (pathways_dataframe, metrics_info, categories_list)
     """
-    # Check if the simpler data file exists
+    # First try to load data from the database
+    if test_connection():
+        try:
+            return init_and_load_data()
+        except Exception as e:
+            print(f"Error loading data from database: {e}")
+            print("Falling back to file-based data...")
+    
+    # If database loading fails, try using the simpler data file
     use_simpler_data = os.path.exists('simplerData.py')
     
-    # If simpler data exists, load it
     if use_simpler_data:
         try:
             with open('simplerData.py', 'r') as file:
