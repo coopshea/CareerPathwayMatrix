@@ -472,7 +472,8 @@ def ai_roadmap_generator_page(pathway=None, pathways_df=None, metrics_data=None)
         """)
         
         uploaded_file = st.file_uploader("Upload your resume (PDF, DOCX, or TXT)", 
-                                         type=["pdf", "docx", "txt"])
+                                         type=["pdf", "docx", "txt"],
+                                         key="resume_upload")
         
         if uploaded_file is not None:
             # Read the file content
@@ -519,7 +520,7 @@ def ai_roadmap_generator_page(pathway=None, pathways_df=None, metrics_data=None)
             
             st.write("### Resume Preview")
             preview = file_content[:1000] + "..." if len(file_content) > 1000 else file_content
-            st.text_area("First 1000 characters of your resume:", preview, height=200)
+            st.text_area("First 1000 characters of your resume:", preview, height=200, key="resume_preview")
             
             generate_button2 = st.button("Generate Roadmap from Resume", key="btn_resume")
             
@@ -591,10 +592,147 @@ def ai_roadmap_generator_page(pathway=None, pathways_df=None, metrics_data=None)
             
             else:  # Text file
                 resume_content = file_content.decode('utf-8')
+                
+            # Add resume preview
+            st.write("### Resume Preview")
+            preview = resume_content[:1000] + "..." if len(resume_content) > 1000 else resume_content
+            st.text_area("First 1000 characters of your resume:", preview, height=200, key="combined_preview")
         
-        # Questionnaire for combined approach
+        # Questionnaire for combined approach with unique keys
         st.write("### Career Questionnaire")
-        questionnaire_responses_combined = create_questionnaire()
+        
+        # Create a copy of the create_questionnaire function with unique keys for combined approach
+        def create_combined_questionnaire():
+            # Initialize responses dictionary
+            responses = {}
+            
+            # Background section
+            st.write("#### Background")
+            responses["years_experience"] = st.slider(
+                "How many years of professional experience do you have?",
+                0, 30, 5,
+                key="combined_years_experience"
+            )
+            
+            responses["current_role"] = st.text_input(
+                "What is your current role or most recent position?",
+                "",
+                key="combined_current_role"
+            )
+            
+            responses["background_summary"] = st.text_area(
+                "Briefly summarize your professional background (fields, roles, industries)",
+                "",
+                key="combined_background_summary"
+            )
+            
+            # Skills and expertise
+            st.write("#### Skills & Expertise")
+            responses["technical_skills"] = st.text_area(
+                "What technical skills do you have? List your strongest skills first.",
+                "",
+                key="combined_technical_skills"
+            )
+            
+            responses["soft_skills"] = st.text_area(
+                "What soft skills or personal strengths do you possess?",
+                "",
+                key="combined_soft_skills"
+            )
+            
+            # Work preferences
+            st.write("#### Work Style & Preferences")
+            
+            responses["work_environment"] = st.radio(
+                "Do you prefer working:",
+                ["Independently", "In small teams", "In large collaborative groups"],
+                key="combined_work_environment"
+            )
+            
+            responses["management_preference"] = st.selectbox(
+                "Do you prefer being an individual contributor or a people manager?",
+                ["Individual Contributor", "People Manager", "Combination/Depends", "Not sure yet"],
+                key="combined_management_preference"
+            )
+            
+            responses["risk_tolerance"] = st.slider(
+                "How comfortable are you with risk in your career? (1 = Very risk-averse, 10 = Very risk-tolerant)",
+                1, 10, 5,
+                key="combined_risk_tolerance"
+            )
+            
+            # Goals and motivations
+            st.write("#### Goals & Motivations")
+            
+            responses["career_goals"] = st.text_area(
+                "What are your key career goals for the next 3-5 years?",
+                "",
+                key="combined_career_goals"
+            )
+            
+            responses["motivations"] = st.multiselect(
+                "What motivates you most in your career? (Select up to 3)",
+                [
+                    "Financial success", "Work-life balance", "Creative expression",
+                    "Technical mastery", "Leadership", "Making an impact", "Job security",
+                    "Status/recognition", "Building something new", "Intellectual challenge",
+                    "Autonomy/independence", "Other"
+                ],
+                [],
+                key="combined_motivations"
+            )
+            
+            responses["timeframe"] = st.selectbox(
+                "What is your preferred timeframe for significant career advancement?",
+                ["0-2 years (short-term)", "3-5 years (medium-term)", "5+ years (long-term)"],
+                key="combined_timeframe"
+            )
+            
+            # Challenges and constraints
+            st.write("#### Challenges & Constraints")
+            
+            responses["biggest_challenges"] = st.text_area(
+                "What do you see as your biggest challenges or obstacles in your career path?",
+                "",
+                key="combined_biggest_challenges"
+            )
+            
+            responses["geographic_constraints"] = st.radio(
+                "Do you have geographic constraints for your career?",
+                ["Fully remote only", "Specific location required", "Flexible/willing to relocate", "No constraints"],
+                key="combined_geographic_constraints"
+            )
+            
+            responses["time_investment"] = st.slider(
+                "How many hours per week can you realistically invest in career development activities?",
+                1, 30, 10,
+                key="combined_time_investment"
+            )
+            
+            # Additional information
+            st.write("#### Additional Information")
+            
+            responses["learning_style"] = st.multiselect(
+                "How do you prefer to learn? (Select all that apply)",
+                [
+                    "Reading books/articles", "Online courses", "Hands-on projects",
+                    "Formal education", "Mentorship", "Social learning/communities",
+                    "Video tutorials", "Learning on the job"
+                ],
+                [],
+                key="combined_learning_style"
+            )
+            
+            responses["additional_info"] = st.text_area(
+                "Is there anything else you'd like to share to help personalize your roadmap?",
+                "",
+                key="combined_additional_info"
+            )
+            
+            return responses
+        
+        # Get questionnaire responses with unique keys
+        questionnaire_responses_combined = create_combined_questionnaire()
         
         if resume_content is not None:
             generate_button3 = st.button("Generate Comprehensive Roadmap", key="btn_combined")
