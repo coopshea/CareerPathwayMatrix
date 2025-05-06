@@ -6,6 +6,7 @@ from visualizations import create_matrix_visualization
 from recommendations import calculate_pathway_matches
 from roadmaps import roadmap_generator_page
 from ai_roadmap import ai_roadmap_generator_page
+from job_postings import job_posting_page
 from utils import create_pathway_card, DEFAULT_IMAGES
 
 # Configure page
@@ -27,7 +28,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Create tabs for different sections
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["2x2 Matrix Explorer", "Find Your Pathway", "Basic Roadmap", "AI Roadmap Generator", "About"])
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["2x2 Matrix Explorer", "Find Your Pathway", "Basic Roadmap", "AI Roadmap Generator", "Add Job Posting", "About"])
 
 with tab1:
     st.write("## Explore Career Pathways on a 2x2 Matrix")
@@ -320,8 +321,12 @@ with tab3:
 with tab4:
     # AI-Powered Roadmap Generator Tab
     ai_roadmap_generator_page(pre_selected_pathway, pathways_data, metrics_data)
-    
+
 with tab5:
+    # Job Posting Tab
+    job_posting_page(pathways_data, metrics_data)
+    
+with tab6:
     st.image(DEFAULT_IMAGES["data_viz_concept"], use_container_width=True)
     
     st.write("## About This Tool")

@@ -22,7 +22,20 @@ def create_matrix_visualization(pathways_df, x_metric, y_metric, metrics_data):
     names = []
     categories = []
     pathway_ids = []
+    is_job_posting = []
     
+    # Check if there are any job pathways in the session state
+    job_pathways = []
+    highlighted_job_id = None
+    
+    if "job_pathways" in st.session_state and st.session_state.job_pathways:
+        job_pathways = st.session_state.job_pathways
+        
+        # Check if there's a highlighted job
+        if "highlighted_job" in st.session_state:
+            highlighted_job_id = st.session_state.highlighted_job
+    
+    # Process the regular pathways from the dataframe
     for _, pathway in pathways_df.iterrows():
         # Skip pathways that don't have the required metrics
         if x_metric not in pathway['metrics'] or y_metric not in pathway['metrics']:
@@ -38,6 +51,25 @@ def create_matrix_visualization(pathways_df, x_metric, y_metric, metrics_data):
         names.append(pathway['name'])
         categories.append(pathway['category'])
         pathway_ids.append(pathway['id'])
+        is_job_posting.append(False)
+    
+    # Process job pathways from the session state
+    for job_pathway in job_pathways:
+        # Skip pathways that don't have the required metrics
+        if x_metric not in job_pathway['metrics'] or y_metric not in job_pathway['metrics']:
+            continue
+            
+        # Get the base values for each metric
+        x_base = job_pathway['metrics'][x_metric]['value']
+        y_base = job_pathway['metrics'][y_metric]['value']
+        
+        # Add the job pathway data (jobs don't get jitter)
+        x_values.append(x_base)
+        y_values.append(y_base)
+        names.append(job_pathway['name'])
+        categories.append(job_pathway['category'])
+        pathway_ids.append(job_pathway['id'])
+        is_job_posting.append(True)
     
     # Create a color map for categories
     category_colors = {
@@ -49,12 +81,28 @@ def create_matrix_visualization(pathways_df, x_metric, y_metric, metrics_data):
         "Finance & Investment": "#E45756",
         "Traditional Professions": "#B279A2",
         "Retail & Consumer": "#FF9DA6",
-        "Health & Wellness": "#9D755D"
+        "Health & Wellness": "#9D755D",
+        "Job Opportunity": "#FFD700"  # Gold color for job opportunities
     }
     
-    colors = [category_colors.get(cat, "#000000") for cat in categories]
+    # Set colors, sizes, and symbols based on type (pathway or job)
+    colors = []
+    sizes = []
+    symbols = []
     
-    # Add jitter to the data points to prevent exact overlaps
+    for i, cat in enumerate(categories):
+        if is_job_posting[i]:
+            # Job postings are gold stars
+            colors.append("#FFD700")  # Gold
+            sizes.append(18)          # Slightly larger
+            symbols.append("star")    # Star symbol
+        else:
+            # Regular pathways
+            colors.append(category_colors.get(cat, "#000000"))
+            sizes.append(12)
+            symbols.append("circle")
+    
+    # Add jitter to the data points to prevent exact overlaps (but not for job postings)
     jittered_x = []
     jittered_y = []
     
@@ -66,18 +114,23 @@ def create_matrix_visualization(pathways_df, x_metric, y_metric, metrics_data):
         y_val = y_values[i]
         pos_key = f"{x_val},{y_val}"
         
-        # Check if this position already exists
-        if pos_key in positions:
-            # Apply small random jitter (±0.2) to both coordinates
-            jitter_x = np.random.uniform(-0.2, 0.2)
-            jitter_y = np.random.uniform(-0.2, 0.2)
-            jittered_x.append(x_val + jitter_x)
-            jittered_y.append(y_val + jitter_y)
-        else:
-            # No jitter needed for first occurrence at this position
-            positions[pos_key] = True
+        if is_job_posting[i]:
+            # No jitter for job postings
             jittered_x.append(x_val)
             jittered_y.append(y_val)
+        else:
+            # Check if this position already exists
+            if pos_key in positions:
+                # Apply small random jitter (±0.2) to both coordinates
+                jitter_x = np.random.uniform(-0.2, 0.2)
+                jitter_y = np.random.uniform(-0.2, 0.2)
+                jittered_x.append(x_val + jitter_x)
+                jittered_y.append(y_val + jitter_y)
+            else:
+                # No jitter needed for first occurrence at this position
+                positions[pos_key] = True
+                jittered_x.append(x_val)
+                jittered_y.append(y_val)
     
     # Create the figure
     fig = go.Figure()
@@ -85,27 +138,50 @@ def create_matrix_visualization(pathways_df, x_metric, y_metric, metrics_data):
     # Prepare customdata with additional information for hover
     hover_data = []
     for i in range(len(pathway_ids)):
-        hover_data.append([pathway_ids[i], categories[i]])
+        # Add job posting flag to hover data
+        hover_data.append([pathway_ids[i], categories[i], is_job_posting[i]])
     
-    # Add the scatter plot with jittered coordinates
+    # Add the scatter plot with jittered coordinates and variable symbols
     fig.add_trace(go.Scatter(
         x=jittered_x,
         y=jittered_y,
         mode='markers',  # Remove text to avoid clutter, will show on hover
         marker=dict(
-            size=12,
+            size=sizes,
             color=colors,
+            symbol=symbols,
             line=dict(width=1, color='black')
         ),
         text=names,
         customdata=hover_data,
         hoverinfo='text',
         hovertemplate='<b>%{text}</b><br>' +
-                      f'{metrics_data[x_metric]["name"]}: %{{x:.1f}}/10<br>' +
-                      f'{metrics_data[y_metric]["name"]}: %{{y:.1f}}/10<br>' +
-                      'Category: %{customdata[1]}<br>' +
-                      '<extra></extra>'
+                     f'{metrics_data[x_metric]["name"]}: %{{x:.1f}}/10<br>' +
+                     f'{metrics_data[y_metric]["name"]}: %{{y:.1f}}/10<br>' +
+                     'Category: %{customdata[1]}<br>' +
+                     '%{customdata[2]}' +
+                     '<extra></extra>'
     ))
+    
+    # If there's a highlighted job, add a highlight circle around it
+    if highlighted_job_id:
+        for i, pathway_id in enumerate(pathway_ids):
+            if pathway_id == highlighted_job_id and is_job_posting[i]:
+                # Add a pulsating highlight effect around the job posting
+                fig.add_trace(go.Scatter(
+                    x=[jittered_x[i]],
+                    y=[jittered_y[i]],
+                    mode='markers',
+                    marker=dict(
+                        size=30,  # Larger than the job star
+                        color='rgba(255, 215, 0, 0.4)',  # Semi-transparent gold
+                        symbol='circle',
+                        line=dict(width=2, color='gold')
+                    ),
+                    hoverinfo='skip',
+                    name="Highlighted Job",
+                    showlegend=False
+                ))
     
     # Add quadrant lines
     fig.add_shape(

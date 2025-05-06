@@ -289,29 +289,34 @@ def create_questionnaire():
     st.write("### Background")
     responses["years_experience"] = st.slider(
         "How many years of professional experience do you have?",
-        0, 30, 5
+        0, 30, 5,
+        key="years_experience_slider"
     )
     
     responses["current_role"] = st.text_input(
         "What is your current role or most recent position?",
-        ""
+        "",
+        key="current_role_input"
     )
     
     responses["background_summary"] = st.text_area(
         "Briefly summarize your professional background (fields, roles, industries)",
-        ""
+        "",
+        key="background_summary_area"
     )
     
     # Skills and expertise
     st.write("### Skills & Expertise")
     responses["technical_skills"] = st.text_area(
         "What technical skills do you have? List your strongest skills first.",
-        ""
+        "",
+        key="technical_skills_area"
     )
     
     responses["soft_skills"] = st.text_area(
         "What soft skills or personal strengths do you possess?",
-        ""
+        "",
+        key="soft_skills_area"
     )
     
     # Work preferences
@@ -319,17 +324,20 @@ def create_questionnaire():
     
     responses["work_environment"] = st.radio(
         "Do you prefer working:",
-        ["Independently", "In small teams", "In large collaborative groups"]
+        ["Independently", "In small teams", "In large collaborative groups"],
+        key="work_environment_radio"
     )
     
     responses["management_preference"] = st.selectbox(
         "Do you prefer being an individual contributor or a people manager?",
-        ["Individual Contributor", "People Manager", "Combination/Depends", "Not sure yet"]
+        ["Individual Contributor", "People Manager", "Combination/Depends", "Not sure yet"],
+        key="management_preference_select"
     )
     
     responses["risk_tolerance"] = st.slider(
         "How comfortable are you with risk in your career? (1 = Very risk-averse, 10 = Very risk-tolerant)",
-        1, 10, 5
+        1, 10, 5,
+        key="risk_tolerance_slider"
     )
     
     # Goals and motivations
@@ -337,7 +345,8 @@ def create_questionnaire():
     
     responses["career_goals"] = st.text_area(
         "What are your key career goals for the next 3-5 years?",
-        ""
+        "",
+        key="career_goals_area"
     )
     
     responses["motivations"] = st.multiselect(
@@ -348,12 +357,14 @@ def create_questionnaire():
             "Status/recognition", "Building something new", "Intellectual challenge",
             "Autonomy/independence", "Other"
         ],
-        []
+        [],
+        key="motivations_multiselect"
     )
     
     responses["timeframe"] = st.selectbox(
         "What is your preferred timeframe for significant career advancement?",
-        ["0-2 years (short-term)", "3-5 years (medium-term)", "5+ years (long-term)"]
+        ["0-2 years (short-term)", "3-5 years (medium-term)", "5+ years (long-term)"],
+        key="timeframe_select"
     )
     
     # Challenges and constraints
@@ -361,17 +372,20 @@ def create_questionnaire():
     
     responses["biggest_challenges"] = st.text_area(
         "What do you see as your biggest challenges or obstacles in your career path?",
-        ""
+        "",
+        key="biggest_challenges_area"
     )
     
     responses["geographic_constraints"] = st.radio(
         "Do you have geographic constraints for your career?",
-        ["Fully remote only", "Specific location required", "Flexible/willing to relocate", "No constraints"]
+        ["Fully remote only", "Specific location required", "Flexible/willing to relocate", "No constraints"],
+        key="geographic_constraints_radio"
     )
     
     responses["time_investment"] = st.slider(
         "How many hours per week can you realistically invest in career development activities?",
-        1, 30, 10
+        1, 30, 10,
+        key="time_investment_slider"
     )
     
     # Additional information
@@ -384,12 +398,14 @@ def create_questionnaire():
             "Formal education", "Mentorship", "Social learning/communities",
             "Video tutorials", "Learning on the job"
         ],
-        []
+        [],
+        key="learning_style_multiselect"
     )
     
     responses["additional_info"] = st.text_area(
         "Is there anything else you'd like to share to help personalize your roadmap?",
-        ""
+        "",
+        key="additional_info_area"
     )
     
     return responses
