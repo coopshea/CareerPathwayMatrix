@@ -7,7 +7,7 @@ import numpy as np
 import os
 import json
 import tempfile
-from database import fetch_job_skills, JobSkill, Session
+from database import fetch_job_skills, save_user_skills, fetch_user_skills, JobSkill, Session
 from io import BytesIO
 import base64
 import random

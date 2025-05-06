@@ -91,6 +91,29 @@ class JobSkill(Base):
             'date_added': self.date_added.isoformat() if self.date_added else None
         }
 
+
+class UserSkill(Base):
+    __tablename__ = 'user_skills'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String, nullable=False, index=True)  # The skill name
+    rating = Column(Integer, default=1)  # Rating from 1-5
+    experience = Column(Text)  # Description of experience with this skill
+    projects = Column(JSON, default=list)  # List of projects using this skill
+    date_added = Column(DateTime, default=datetime.utcnow)
+    last_updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'rating': self.rating,
+            'experience': self.experience,
+            'projects': self.projects,
+            'date_added': self.date_added.isoformat() if self.date_added else None,
+            'last_updated': self.last_updated.isoformat() if self.last_updated else None
+        }
+
 # Create tables if they don't exist
 def init_db():
     # Check if migration is needed and perform it automatically
@@ -289,8 +312,19 @@ def add_skills_from_job(session, job_pathway):
 
 # Fetch job skills from the database
 def fetch_job_skills(top_n=None, skill_type=None, category=None):
-    session = Session()
+    """
+    Fetch job skills from the database, with optional filtering.
+    
+    Args:
+        top_n (int, optional): Limit results to the top N most frequent skills
+        skill_type (str, optional): Filter by skill type ('required', 'preferred')
+        category (str, optional): Filter by job category
+        
+    Returns:
+        list: Job skills matching the criteria
+    """
     try:
+        session = Session()
         # Base query
         query = session.query(JobSkill)
         
@@ -303,6 +337,21 @@ def fetch_job_skills(top_n=None, skill_type=None, category=None):
         # Get results
         skills = query.all()
         
+        # If no skills found, add some sample skills
+        if not skills:
+            print("No skills found in database, adding sample skills...")
+            add_sample_job_skills()
+            session.close()
+            
+            # Create a new session and try again
+            session = Session()
+            query = session.query(JobSkill)
+            if skill_type:
+                query = query.filter(JobSkill.skill_type == skill_type)
+            if category:
+                query = query.filter(JobSkill.category == category)
+            skills = query.all()
+        
         # Aggregate frequencies for the same skill
         skill_freq = {}
         for skill in skills:
@@ -314,7 +363,9 @@ def fetch_job_skills(top_n=None, skill_type=None, category=None):
                 skill_freq[skill_name] = {
                     'name': skill.name,
                     'frequency': skill.frequency,
-                    'jobs': {skill.job_id}
+                    'jobs': {skill.job_id},
+                    'skill_type': skill.skill_type,
+                    'job_id': skill.job_id
                 }
         
         # Convert to list and sort by frequency
@@ -322,7 +373,9 @@ def fetch_job_skills(top_n=None, skill_type=None, category=None):
             {
                 'name': info['name'],
                 'frequency': info['frequency'],
-                'job_count': len(info['jobs'])
+                'job_count': len(info['jobs']),
+                'skill_type': info['skill_type'],
+                'job_id': info['job_id']
             }
             for skill_name, info in skill_freq.items()
         ]
@@ -332,9 +385,137 @@ def fetch_job_skills(top_n=None, skill_type=None, category=None):
         if top_n:
             result = result[:top_n]
             
+        session.close()
         return result
+    except Exception as e:
+        print(f"Error fetching job skills: {e}")
+        return []
+
+
+# Add sample job skills to the database if no skills exist
+def add_sample_job_skills():
+    """
+    Add sample job skills to the database if no skills exist.
+    """
+    try:
+        session = Session()
+        sample_skills = [
+            {"name": "Python Programming", "skill_type": "required", "job_id": "sample_job_1", "job_title": "Data Scientist", "category": "Data Science", "frequency": 10},
+            {"name": "SQL", "skill_type": "required", "job_id": "sample_job_1", "job_title": "Data Scientist", "category": "Data Science", "frequency": 8},
+            {"name": "Machine Learning", "skill_type": "required", "job_id": "sample_job_1", "job_title": "Data Scientist", "category": "Data Science", "frequency": 9},
+            {"name": "Data Analysis", "skill_type": "required", "job_id": "sample_job_1", "job_title": "Data Scientist", "category": "Data Science", "frequency": 7},
+            {"name": "Statistics", "skill_type": "required", "job_id": "sample_job_1", "job_title": "Data Scientist", "category": "Data Science", "frequency": 6},
+            {"name": "Deep Learning", "skill_type": "preferred", "job_id": "sample_job_1", "job_title": "Data Scientist", "category": "Data Science", "frequency": 5},
+            
+            {"name": "JavaScript", "skill_type": "required", "job_id": "sample_job_2", "job_title": "Frontend Developer", "category": "Software Development", "frequency": 10},
+            {"name": "HTML", "skill_type": "required", "job_id": "sample_job_2", "job_title": "Frontend Developer", "category": "Software Development", "frequency": 9},
+            {"name": "CSS", "skill_type": "required", "job_id": "sample_job_2", "job_title": "Frontend Developer", "category": "Software Development", "frequency": 9},
+            {"name": "React", "skill_type": "required", "job_id": "sample_job_2", "job_title": "Frontend Developer", "category": "Software Development", "frequency": 8},
+            {"name": "TypeScript", "skill_type": "preferred", "job_id": "sample_job_2", "job_title": "Frontend Developer", "category": "Software Development", "frequency": 6},
+            {"name": "UI/UX Design", "skill_type": "preferred", "job_id": "sample_job_2", "job_title": "Frontend Developer", "category": "Software Development", "frequency": 5},
+            
+            {"name": "Java", "skill_type": "required", "job_id": "sample_job_3", "job_title": "Backend Developer", "category": "Software Development", "frequency": 9},
+            {"name": "Spring Framework", "skill_type": "required", "job_id": "sample_job_3", "job_title": "Backend Developer", "category": "Software Development", "frequency": 8},
+            {"name": "RESTful APIs", "skill_type": "required", "job_id": "sample_job_3", "job_title": "Backend Developer", "category": "Software Development", "frequency": 7},
+            {"name": "SQL", "skill_type": "required", "job_id": "sample_job_3", "job_title": "Backend Developer", "category": "Software Development", "frequency": 7},
+            {"name": "Microservices", "skill_type": "preferred", "job_id": "sample_job_3", "job_title": "Backend Developer", "category": "Software Development", "frequency": 6},
+            
+            {"name": "Project Management", "skill_type": "required", "job_id": "sample_job_4", "job_title": "Product Manager", "category": "Product Management", "frequency": 10},
+            {"name": "Agile Methodologies", "skill_type": "required", "job_id": "sample_job_4", "job_title": "Product Manager", "category": "Product Management", "frequency": 9},
+            {"name": "User Research", "skill_type": "required", "job_id": "sample_job_4", "job_title": "Product Manager", "category": "Product Management", "frequency": 8},
+            {"name": "Market Analysis", "skill_type": "required", "job_id": "sample_job_4", "job_title": "Product Manager", "category": "Product Management", "frequency": 7},
+            {"name": "Product Strategy", "skill_type": "required", "job_id": "sample_job_4", "job_title": "Product Manager", "category": "Product Management", "frequency": 8},
+            {"name": "Data Analysis", "skill_type": "preferred", "job_id": "sample_job_4", "job_title": "Product Manager", "category": "Product Management", "frequency": 6},
+        ]
+        
+        for skill_data in sample_skills:
+            skill = JobSkill(
+                name=skill_data["name"],
+                skill_type=skill_data["skill_type"],
+                job_id=skill_data["job_id"],
+                job_title=skill_data["job_title"],
+                category=skill_data["category"],
+                frequency=skill_data["frequency"]
+            )
+            session.add(skill)
+        
+        try:
+            session.commit()
+            print("Added sample job skills to database")
+        except Exception as e:
+            session.rollback()
+            print(f"Error adding sample job skills: {e}")
+    except Exception as e:
+        print(f"Error in add_sample_job_skills: {e}")
     finally:
         session.close()
+
+
+# Functions for user skills management
+def save_user_skills(skills_dict):
+    """
+    Save user skills to the database.
+    
+    Args:
+        skills_dict (dict): Dictionary of user skills to save
+            {skill_name: {rating, experience, projects}}
+    
+    Returns:
+        bool: Success or failure
+    """
+    try:
+        session = Session()
+        
+        # First, delete all existing user skills
+        session.query(UserSkill).delete()
+        
+        # Add new skills
+        for skill_name, skill_data in skills_dict.items():
+            skill = UserSkill(
+                name=skill_name,
+                rating=skill_data.get('rating', 1),
+                experience=skill_data.get('experience', ''),
+                projects=skill_data.get('projects', [])
+            )
+            session.add(skill)
+        
+        session.commit()
+        print(f"Saved {len(skills_dict)} user skills to database")
+        return True
+    except Exception as e:
+        session.rollback()
+        print(f"Error saving user skills to database: {e}")
+        return False
+    finally:
+        session.close()
+
+
+def fetch_user_skills():
+    """
+    Fetch user skills from the database.
+    
+    Returns:
+        dict: Dictionary of user skills
+            {skill_name: {rating, experience, projects}}
+    """
+    try:
+        session = Session()
+        skills = session.query(UserSkill).all()
+        
+        # Convert to dictionary
+        skills_dict = {}
+        for skill in skills:
+            skills_dict[skill.name] = {
+                'rating': skill.rating,
+                'experience': skill.experience,
+                'projects': skill.projects
+            }
+        
+        session.close()
+        return skills_dict
+    except Exception as e:
+        print(f"Error fetching user skills from database: {e}")
+        return {}
 
 # Initialize the database and import data
 def init_and_load_data():
