@@ -5,6 +5,7 @@ from data import load_data, get_pathway_details, get_metrics_info
 from visualizations import create_matrix_visualization
 from recommendations import calculate_pathway_matches
 from roadmaps import roadmap_generator_page
+from ai_roadmap import ai_roadmap_generator_page
 from utils import create_pathway_card, DEFAULT_IMAGES
 
 # Configure page
@@ -26,7 +27,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Create tabs for different sections
-tab1, tab2, tab3, tab4 = st.tabs(["2x2 Matrix Explorer", "Find Your Pathway", "Roadmap Generator", "About"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["2x2 Matrix Explorer", "Find Your Pathway", "Basic Roadmap", "AI Roadmap Generator", "About"])
 
 with tab1:
     st.write("## Explore Career Pathways on a 2x2 Matrix")
@@ -146,14 +147,24 @@ with tab1:
                 else:
                     st.write("No detailed rationale available for this pathway.")
             
-            # Add button to generate roadmap for this pathway
-            if st.button("Generate Personalized Roadmap for This Pathway"):
-                # Set a session state variable to indicate we want to switch to the roadmap tab
-                # with this pathway pre-selected
-                st.session_state.generate_roadmap_for = pathway_details
-                # Switch to the roadmap tab (index 2)
-                st.experimental_set_query_params(tab="Roadmap Generator")
-                st.rerun()
+            # Add buttons to generate roadmaps for this pathway
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Generate Basic Roadmap"):
+                    # Set a session state variable to indicate we want to switch to the basic roadmap tab
+                    # with this pathway pre-selected
+                    st.session_state.generate_roadmap_for = pathway_details
+                    # Switch to the basic roadmap tab (index 2)
+                    st.experimental_set_query_params(tab="Basic Roadmap")
+                    st.rerun()
+            with col2:
+                if st.button("Generate AI-Powered Roadmap"):
+                    # Set a session state variable to indicate we want to switch to the AI roadmap tab
+                    # with this pathway pre-selected
+                    st.session_state.generate_roadmap_for = pathway_details
+                    # Switch to the AI roadmap tab (index 3)
+                    st.experimental_set_query_params(tab="AI Roadmap Generator")
+                    st.rerun()
 
 with tab2:
     st.write("## Find Pathways That Match Your Preferences")
@@ -264,9 +275,15 @@ with tab2:
                 for metric, explanation in match_explanation.items():
                     st.write(f"- {metrics_data[metric]['name']}: {explanation}")
                 
-                # Button to see full details
+                # Buttons for details and roadmap generation
                 if st.button(f"See Full Details #{i+1}", key=f"details_{i}"):
                     st.session_state.selected_pathway = pathway_id
+                    st.rerun()
+                
+                if st.button(f"Generate AI Roadmap #{i+1}", key=f"ai_roadmap_{i}"):
+                    pathway_details = get_pathway_details(pathways_data, pathway_id)
+                    st.session_state.generate_roadmap_for = pathway_details
+                    st.experimental_set_query_params(tab="AI Roadmap Generator")
                     st.rerun()
             
             with rec_col2:
@@ -290,7 +307,7 @@ with tab2:
             st.write("---")
 
 with tab3:
-    # Roadmap Generator Tab
+    # Basic Roadmap Generator Tab
     # Check if we're coming from a pathway detail view with a pre-selected pathway
     pre_selected_pathway = None
     if 'generate_roadmap_for' in st.session_state:
@@ -299,8 +316,12 @@ with tab3:
         del st.session_state.generate_roadmap_for
     
     roadmap_generator_page(pre_selected_pathway, pathways_data, metrics_data)
-    
+
 with tab4:
+    # AI-Powered Roadmap Generator Tab
+    ai_roadmap_generator_page(pre_selected_pathway, pathways_data, metrics_data)
+    
+with tab5:
     st.image(DEFAULT_IMAGES["data_viz_concept"], use_container_width=True)
     
     st.write("## About This Tool")
