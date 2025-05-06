@@ -4,6 +4,7 @@ import numpy as np
 from data import load_data, get_pathway_details, get_metrics_info
 from visualizations import create_matrix_visualization
 from recommendations import calculate_pathway_matches
+from roadmaps import roadmap_generator_page
 from utils import create_pathway_card, DEFAULT_IMAGES
 
 # Configure page
@@ -25,7 +26,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Create tabs for different sections
-tab1, tab2, tab3 = st.tabs(["2x2 Matrix Explorer", "Find Your Pathway", "About"])
+tab1, tab2, tab3, tab4 = st.tabs(["2x2 Matrix Explorer", "Find Your Pathway", "Roadmap Generator", "About"])
 
 with tab1:
     st.write("## Explore Career Pathways on a 2x2 Matrix")
@@ -144,6 +145,15 @@ with tab1:
                         st.write(f"**{metrics_data[metric]['name']}:** {explanation}")
                 else:
                     st.write("No detailed rationale available for this pathway.")
+            
+            # Add button to generate roadmap for this pathway
+            if st.button("Generate Personalized Roadmap for This Pathway"):
+                # Set a session state variable to indicate we want to switch to the roadmap tab
+                # with this pathway pre-selected
+                st.session_state.generate_roadmap_for = pathway_details
+                # Switch to the roadmap tab (index 2)
+                st.experimental_set_query_params(tab="Roadmap Generator")
+                st.rerun()
 
 with tab2:
     st.write("## Find Pathways That Match Your Preferences")
@@ -280,6 +290,17 @@ with tab2:
             st.write("---")
 
 with tab3:
+    # Roadmap Generator Tab
+    # Check if we're coming from a pathway detail view with a pre-selected pathway
+    pre_selected_pathway = None
+    if 'generate_roadmap_for' in st.session_state:
+        pre_selected_pathway = st.session_state.generate_roadmap_for
+        # Clear the session state so it doesn't persist
+        del st.session_state.generate_roadmap_for
+    
+    roadmap_generator_page(pre_selected_pathway, pathways_data, metrics_data)
+    
+with tab4:
     st.image(DEFAULT_IMAGES["data_viz_concept"], use_container_width=True)
     
     st.write("## About This Tool")
