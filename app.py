@@ -7,6 +7,7 @@ from recommendations import calculate_pathway_matches
 from roadmaps import roadmap_generator_page
 from ai_roadmap import ai_roadmap_generator_page
 from job_postings import job_posting_page
+from skills_analysis import skills_analysis_page
 from utils import create_pathway_card, DEFAULT_IMAGES
 
 # Configure page
@@ -28,7 +29,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Create tabs for different sections
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["2x2 Matrix Explorer", "Find Your Pathway", "Basic Roadmap", "AI Roadmap Generator", "Add Job Posting", "About"])
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["2x2 Matrix Explorer", "Find Your Pathway", "Basic Roadmap", "AI Roadmap Generator", "Add Job Posting", "Skills Analysis", "About"])
 
 with tab1:
     st.write("## Explore Career Pathways on a 2x2 Matrix")
@@ -327,9 +328,34 @@ with tab5:
     job_posting_page(pathways_data, metrics_data)
     
 with tab6:
+    # Skills Analysis Tab
+    skills_analysis_page()
+    
+with tab7:
     st.image(DEFAULT_IMAGES["data_viz_concept"], use_container_width=True)
     
     st.write("## About This Tool")
+    
+    # Add an admin section with database migration option
+    with st.expander("Admin Tools", expanded=False):
+        st.warning("⚠️ Warning: These tools modify the database and should be used with caution.")
+        
+        # Check if migration is needed
+        from database import check_migration_needed, recreate_tables
+        
+        migration_needed = check_migration_needed()
+        if migration_needed:
+            st.error("Database schema is outdated and needs to be updated to support job postings and skills tracking.")
+            if st.button("Update Database Schema"):
+                with st.spinner("Updating database schema... This will recreate all tables and may take a minute."):
+                    success = recreate_tables()
+                    if success:
+                        st.success("Database schema updated successfully! Now you can add job postings and they will be stored in the database.")
+                        st.info("Please refresh the page to see the changes.")
+                    else:
+                        st.error("Failed to update database schema. Please check the logs for details.")
+        else:
+            st.success("Database schema is up to date.")
     
     st.markdown("""
     ### Tool Purpose

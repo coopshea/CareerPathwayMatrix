@@ -339,6 +339,46 @@ def init_and_load_data():
     
     return pathways_df, metrics_data, categories
 
+# Recreate the database tables (use with caution, will delete all data)
+def recreate_tables():
+    session = Session()
+    try:
+        # Drop the existing tables
+        print("Dropping existing tables...")
+        Base.metadata.drop_all(engine)
+        
+        # Create the tables with the new schema
+        print("Creating tables with new schema...")
+        Base.metadata.create_all(engine)
+        
+        # Import the original data
+        print("Importing data...")
+        import_simpler_data()
+        
+        print("Database tables have been recreated successfully!")
+        return True
+    except Exception as e:
+        session.rollback()
+        print(f"Error recreating tables: {e}")
+        return False
+    finally:
+        session.close()
+
+# Check if the database needs migration
+def check_migration_needed():
+    session = Session()
+    try:
+        # Try to query and see if the new columns exist
+        try:
+            session.query(Pathway.is_job_posting).first()
+            # If we get here, the column exists
+            return False
+        except Exception:
+            # If we get an error, the column doesn't exist and migration is needed
+            return True
+    finally:
+        session.close()
+
 # Test if database connection is working
 def test_connection():
     try:
@@ -352,6 +392,17 @@ def test_connection():
 if __name__ == "__main__":
     if test_connection():
         print("Database connection successful")
+        
+        # Check if migration is needed and perform it if necessary
+        if check_migration_needed():
+            print("Database schema needs to be updated...")
+            if recreate_tables():
+                print("Database schema has been updated successfully.")
+            else:
+                print("Failed to update the database schema.")
+        else:
+            print("Database schema is up to date.")
+            
         init_and_load_data()
     else:
         print("Failed to connect to database")

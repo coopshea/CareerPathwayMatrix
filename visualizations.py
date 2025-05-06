@@ -113,6 +113,7 @@ def create_matrix_visualization(pathways_df, x_metric, y_metric, metrics_data):
     colors = []
     sizes = []
     symbols = []
+    hovertemplates = []
     
     for i, cat in enumerate(categories):
         if is_job_posting[i]:
@@ -120,11 +121,28 @@ def create_matrix_visualization(pathways_df, x_metric, y_metric, metrics_data):
             colors.append("#FFD700")  # Gold
             sizes.append(18)          # Slightly larger
             symbols.append("star")    # Star symbol
+            # Custom hover template for job postings
+            hovertemplates.append(
+                '<b>%{text}</b><br>' +
+                f'{metrics_data[x_metric]["name"]}: %{{x:.1f}}/10<br>' +
+                f'{metrics_data[y_metric]["name"]}: %{{y:.1f}}/10<br>' +
+                'Category: %{customdata[1]}<br>' +
+                '<b style="color:gold">Job Posting</b>' +
+                '<extra></extra>'
+            )
         else:
             # Regular pathways
             colors.append(category_colors.get(cat, "#000000"))
             sizes.append(12)
             symbols.append("circle")
+            # Standard hover template
+            hovertemplates.append(
+                '<b>%{text}</b><br>' +
+                f'{metrics_data[x_metric]["name"]}: %{{x:.1f}}/10<br>' +
+                f'{metrics_data[y_metric]["name"]}: %{{y:.1f}}/10<br>' +
+                'Category: %{customdata[1]}<br>' +
+                '<extra></extra>'
+            )
     
     # Add jitter to the data points to prevent exact overlaps (but not for job postings)
     jittered_x = []
@@ -165,27 +183,72 @@ def create_matrix_visualization(pathways_df, x_metric, y_metric, metrics_data):
         # Add job posting flag to hover data
         hover_data.append([pathway_ids[i], categories[i], is_job_posting[i]])
     
-    # Add the scatter plot with jittered coordinates and variable symbols
-    fig.add_trace(go.Scatter(
-        x=jittered_x,
-        y=jittered_y,
-        mode='markers',  # Remove text to avoid clutter, will show on hover
-        marker=dict(
-            size=sizes,
-            color=colors,
-            symbol=symbols,
-            line=dict(width=1, color='black')
-        ),
-        text=names,
-        customdata=hover_data,
-        hoverinfo='text',
-        hovertemplate='<b>%{text}</b><br>' +
-                     f'{metrics_data[x_metric]["name"]}: %{{x:.1f}}/10<br>' +
-                     f'{metrics_data[y_metric]["name"]}: %{{y:.1f}}/10<br>' +
-                     'Category: %{customdata[1]}<br>' +
-                     '<b style="color:gold">Job Posting</b>' if '%{customdata[2]}' == 'true' else '' +
-                     '<extra></extra>'
-    ))
+    # Add separate scatter traces for pathways and job postings for different hover templates
+    for i, is_job in enumerate(is_job_posting):
+        if is_job:
+            # Add job posting (star)
+            fig.add_trace(go.Scatter(
+                x=[jittered_x[i]],
+                y=[jittered_y[i]],
+                mode='markers',
+                marker=dict(
+                    size=18,
+                    color="#FFD700",  # Gold
+                    symbol="star",
+                    line=dict(width=1, color='black')
+                ),
+                text=[names[i]],
+                customdata=[hover_data[i]],
+                hoverinfo='text',
+                hovertemplate='<b>%{text}</b><br>' +
+                             f'{metrics_data[x_metric]["name"]}: %{{x:.1f}}/10<br>' +
+                             f'{metrics_data[y_metric]["name"]}: %{{y:.1f}}/10<br>' +
+                             'Category: %{customdata[1]}<br>' +
+                             '<b style="color:gold">Job Posting</b>' +
+                             '<extra></extra>',
+                showlegend=False
+            ))
+    
+    # Add regular pathways as a separate trace
+    regular_x = []
+    regular_y = []
+    regular_names = []
+    regular_hover_data = []
+    regular_colors = []
+    regular_sizes = []
+    regular_symbols = []
+    
+    for i, is_job in enumerate(is_job_posting):
+        if not is_job:
+            regular_x.append(jittered_x[i])
+            regular_y.append(jittered_y[i])
+            regular_names.append(names[i])
+            regular_hover_data.append(hover_data[i])
+            regular_colors.append(colors[i])
+            regular_sizes.append(sizes[i])
+            regular_symbols.append(symbols[i])
+    
+    if regular_x:  # Only add the trace if there are regular pathways
+        fig.add_trace(go.Scatter(
+            x=regular_x,
+            y=regular_y,
+            mode='markers',
+            marker=dict(
+                size=regular_sizes,
+                color=regular_colors,
+                symbol=regular_symbols,
+                line=dict(width=1, color='black')
+            ),
+            text=regular_names,
+            customdata=regular_hover_data,
+            hoverinfo='text',
+            hovertemplate='<b>%{text}</b><br>' +
+                         f'{metrics_data[x_metric]["name"]}: %{{x:.1f}}/10<br>' +
+                         f'{metrics_data[y_metric]["name"]}: %{{y:.1f}}/10<br>' +
+                         'Category: %{customdata[1]}<br>' +
+                         '<extra></extra>',
+            showlegend=False
+        ))
     
     # If there's a highlighted job, add a highlight circle around it
     if highlighted_job_id:
