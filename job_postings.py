@@ -92,11 +92,27 @@ def convert_job_to_pathway(job_data):
     job_id = f"job_{datetime.now().strftime('%Y%m%d%H%M%S')}"
     
     # Map the job skills to pathway key skills
-    key_skills = job_data.get("required_skills", []) + job_data.get("preferred_skills", [])
+    required_skills = job_data.get("required_skills", [])
+    preferred_skills = job_data.get("preferred_skills", [])
+    
+    # Ensure we're not dealing with None values
+    if required_skills is None:
+        required_skills = []
+    if preferred_skills is None:
+        preferred_skills = []
+        
+    key_skills = required_skills + preferred_skills
     
     # Generate a description for the pathway
     description = f"This pathway is based on a job posting for {job_data.get('job_title', 'Unknown Position')} at {job_data.get('company_name', 'Unknown Company')}. "
-    description += f"It requires experience in {', '.join(job_data.get('required_skills', ['various skills'])[:3])}. "
+    
+    # Safely get the required skills
+    req_skills = job_data.get('required_skills', ['various skills'])
+    if req_skills is None:
+        req_skills = ['various skills']
+    req_skills_text = ', '.join(req_skills[:3]) if req_skills else 'various skills'
+    
+    description += f"It requires experience in {req_skills_text}. "
     description += f"This is a {job_data.get('experience_level', 'mid-level')} position in the {job_data.get('industry', 'technology')} industry."
     
     # Create the metrics for the pathway (these are estimations)
