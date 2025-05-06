@@ -28,8 +28,13 @@ def create_matrix_visualization(pathways_df, x_metric, y_metric, metrics_data):
         if x_metric not in pathway['metrics'] or y_metric not in pathway['metrics']:
             continue
             
-        x_values.append(pathway['metrics'][x_metric]['value'])
-        y_values.append(pathway['metrics'][y_metric]['value'])
+        # Get the base values for each metric
+        x_base = pathway['metrics'][x_metric]['value']
+        y_base = pathway['metrics'][y_metric]['value']
+        
+        # Add the pathway data
+        x_values.append(x_base)
+        y_values.append(y_base)
         names.append(pathway['name'])
         categories.append(pathway['category'])
         pathway_ids.append(pathway['id'])
@@ -49,27 +54,56 @@ def create_matrix_visualization(pathways_df, x_metric, y_metric, metrics_data):
     
     colors = [category_colors.get(cat, "#000000") for cat in categories]
     
+    # Add jitter to the data points to prevent exact overlaps
+    jittered_x = []
+    jittered_y = []
+    
+    # Create a dictionary to track positions and apply jitter only when needed
+    positions = {}
+    
+    for i in range(len(x_values)):
+        x_val = x_values[i]
+        y_val = y_values[i]
+        pos_key = f"{x_val},{y_val}"
+        
+        # Check if this position already exists
+        if pos_key in positions:
+            # Apply small random jitter (±0.2) to both coordinates
+            jitter_x = np.random.uniform(-0.2, 0.2)
+            jitter_y = np.random.uniform(-0.2, 0.2)
+            jittered_x.append(x_val + jitter_x)
+            jittered_y.append(y_val + jitter_y)
+        else:
+            # No jitter needed for first occurrence at this position
+            positions[pos_key] = True
+            jittered_x.append(x_val)
+            jittered_y.append(y_val)
+    
     # Create the figure
     fig = go.Figure()
     
-    # Add the scatter plot
+    # Prepare customdata with additional information for hover
+    hover_data = []
+    for i in range(len(pathway_ids)):
+        hover_data.append([pathway_ids[i], categories[i]])
+    
+    # Add the scatter plot with jittered coordinates
     fig.add_trace(go.Scatter(
-        x=x_values,
-        y=y_values,
-        mode='markers+text',
+        x=jittered_x,
+        y=jittered_y,
+        mode='markers',  # Remove text to avoid clutter, will show on hover
         marker=dict(
             size=12,
             color=colors,
             line=dict(width=1, color='black')
         ),
         text=names,
-        textposition="top center",
-        textfont=dict(size=10),
-        customdata=pathway_ids,
+        customdata=hover_data,
+        hoverinfo='text',
         hovertemplate='<b>%{text}</b><br>' +
-                      f'{metrics_data[x_metric]["name"]}: %{{x}}/10<br>' +
-                      f'{metrics_data[y_metric]["name"]}: %{{y}}/10<br>' +
-                      'Category: %{marker.color}<br>' +
+                      f'{metrics_data[x_metric]["name"]}: %{{x:.1f}}/10<br>' +
+                      f'{metrics_data[y_metric]["name"]}: %{{y:.1f}}/10<br>' +
+                      'Category: %{customdata[1]}<br>' +
                       '<extra></extra>'
     ))
     
@@ -147,12 +181,8 @@ def create_matrix_visualization(pathways_df, x_metric, y_metric, metrics_data):
     # Configure click events
     fig.update_layout(clickmode='event')
     
-    # Add a callback for clicking on a pathway
-    fig.update_traces(
-        mode='markers+text',
-        marker=dict(size=12),
-        textposition="top center"
-    )
+    # No need to update all traces as we want to keep the markers-only mode
+    # for better visualization with the jitter effect
     
     # Configure the config for downloads
     config = {
