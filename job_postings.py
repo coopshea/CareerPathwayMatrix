@@ -152,7 +152,7 @@ def convert_job_to_pathway(job_data):
 
 def add_job_posting_to_session(pathway):
     """
-    Add a job posting pathway to the session state.
+    Add a job posting pathway to the session state and database.
     
     Args:
         pathway (dict): The pathway to add
@@ -166,6 +166,19 @@ def add_job_posting_to_session(pathway):
     
     # Mark the pathway as highlighted in the session state
     st.session_state.highlighted_job = pathway["id"]
+    
+    # Add the job posting to the database
+    from database import add_job_posting_to_db
+    try:
+        success = add_job_posting_to_db(pathway)
+        if success:
+            print(f"Successfully added job posting to database: {pathway['name']}")
+        else:
+            print(f"Failed to add job posting to database: {pathway['name']}")
+    except Exception as e:
+        print(f"Error adding job posting to database: {e}")
+        # Continue even if database storage fails
+        # The job will still be in the session state
 
 def job_posting_page(pathways_df=None, metrics_data=None):
     """

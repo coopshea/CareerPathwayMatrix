@@ -24,16 +24,40 @@ def create_matrix_visualization(pathways_df, x_metric, y_metric, metrics_data):
     pathway_ids = []
     is_job_posting = []
     
-    # Check if there are any job pathways in the session state
+    # Check if there are any job pathways in the session state or database
     job_pathways = []
     highlighted_job_id = None
     
+    # First, try to get job pathways from the session state
     if "job_pathways" in st.session_state and st.session_state.job_pathways:
         job_pathways = st.session_state.job_pathways
         
         # Check if there's a highlighted job
         if "highlighted_job" in st.session_state:
             highlighted_job_id = st.session_state.highlighted_job
+    
+    # Then add any job pathways from the database that aren't in the session state
+    try:
+        from database import Session, Pathway
+        
+        # Create a set of existing job IDs in the session state
+        existing_job_ids = {pathway['id'] for pathway in job_pathways} if job_pathways else set()
+        
+        # Query the database for job postings
+        session = Session()
+        db_job_pathways = session.query(Pathway).filter(Pathway.is_job_posting == True).all()
+        
+        # Add job pathways from the database that aren't already in the session state
+        for job_pathway in db_job_pathways:
+            if job_pathway.id not in existing_job_ids:
+                job_data = job_pathway.to_dict()
+                job_pathways.append(job_data)
+                existing_job_ids.add(job_pathway.id)
+        
+        session.close()
+    except Exception as e:
+        st.sidebar.warning(f"Could not fetch job postings from database: {e}")
+        print(f"Error fetching job postings from database: {e}")
     
     # Process the regular pathways from the dataframe
     for _, pathway in pathways_df.iterrows():
@@ -159,7 +183,7 @@ def create_matrix_visualization(pathways_df, x_metric, y_metric, metrics_data):
                      f'{metrics_data[x_metric]["name"]}: %{{x:.1f}}/10<br>' +
                      f'{metrics_data[y_metric]["name"]}: %{{y:.1f}}/10<br>' +
                      'Category: %{customdata[1]}<br>' +
-                     '%{customdata[2]}' +
+                     '<b style="color:gold">Job Posting</b>' if '%{customdata[2]}' == 'true' else '' +
                      '<extra></extra>'
     ))
     
