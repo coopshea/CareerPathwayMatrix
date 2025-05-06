@@ -17,7 +17,6 @@ import re
 def analyze_resume_skills(resume_text):
     """
     Analyze resume text to extract skills using OpenAI.
-    In a real implementation, this would use OpenAI API to extract and rate skills.
     
     Args:
         resume_text (str): The text content of the resume
@@ -25,9 +24,80 @@ def analyze_resume_skills(resume_text):
     Returns:
         dict: Dictionary of skills with ratings and context
     """
-    # In a real implementation, this would call OpenAI to extract skills
-    # For demo purposes, we'll return some sample skills
-    sample_skills = {
+    try:
+        # Check if OpenAI API key is available
+        import os
+        import json
+        from openai import OpenAI
+        
+        openai_api_key = os.environ.get("OPENAI_API_KEY")
+        if not openai_api_key:
+            st.warning("⚠️ OpenAI API key not found. Using sample skills instead. Please set the OPENAI_API_KEY environment variable for actual skill extraction.")
+            # Return sample skills if API key is not available
+            return get_sample_skills()
+        
+        # Initialize OpenAI client
+        client = OpenAI(api_key=openai_api_key)
+        
+        # Create prompt for OpenAI
+        prompt = f"""
+        Extract professional skills from the following resume text. Rate each skill on a scale of 1-5 based on the experience level indicated in the resume. 
+        Also extract contextual information about each skill including years of experience and related projects or achievements.
+        
+        Resume text:
+        {resume_text}
+        
+        Return the result as a JSON object where:
+        - Each key is a skill name
+        - Each value is an object with:
+          - "rating": integer from 1-5 based on experience level
+          - "experience": string describing their experience with this skill
+          - "projects": array of projects or achievements related to this skill
+        
+        Example format:
+        {{
+          "Python Programming": {{
+            "rating": 4,
+            "experience": "5 years experience with Python for data analysis",
+            "projects": ["Data dashboard project", "ML classification model"]
+          }},
+          "Project Management": {{
+            "rating": 3,
+            "experience": "Led 3 cross-functional teams",
+            "projects": ["Website redesign", "Mobile app development"]
+          }}
+        }}
+        
+        Focus on technical skills, soft skills, tools, programming languages, frameworks, and methodologies.
+        """
+        
+        # Call OpenAI API
+        response = client.chat.completions.create(
+            model="gpt-4o",  # The newest OpenAI model is "gpt-4o" which was released May 13, 2024
+            messages=[
+                {"role": "system", "content": "You are a skilled resume analyzer specializing in extracting professional skills and experience level."},
+                {"role": "user", "content": prompt}
+            ],
+            response_format={"type": "json_object"}
+        )
+        
+        # Parse the response
+        skills_data = json.loads(response.choices[0].message.content)
+        
+        if skills_data and len(skills_data) > 0:
+            return skills_data
+        else:
+            st.warning("No skills were extracted from the resume. Using sample skills instead.")
+            return get_sample_skills()
+            
+    except Exception as e:
+        st.error(f"Error extracting skills from resume: {str(e)}")
+        return get_sample_skills()
+
+
+def get_sample_skills():
+    """Return sample skills when API extraction fails"""
+    return {
         "Python Programming": {
             "rating": 4,
             "experience": "5 years experience, created multiple data analysis applications",
@@ -54,7 +124,6 @@ def analyze_resume_skills(resume_text):
             "projects": ["ERP Implementation", "Website redesign"]
         }
     }
-    return sample_skills
 
 
 def process_resume_text(file_content, file_type):
@@ -68,9 +137,47 @@ def process_resume_text(file_content, file_type):
     Returns:
         str: The extracted text content
     """
-    # For demo purposes, we'll just return some sample text
-    # In a real implementation, this would extract text based on file type
-    return "Sample resume text that would be processed by the OpenAI API to extract skills"
+    try:
+        import io
+        
+        # Handle different file types
+        if "pdf" in file_type.lower():
+            try:
+                import PyPDF2
+                pdf_file = io.BytesIO(file_content)
+                pdf_reader = PyPDF2.PdfReader(pdf_file)
+                text = ""
+                for page_num in range(len(pdf_reader.pages)):
+                    text += pdf_reader.pages[page_num].extract_text()
+                return text
+            except Exception as e:
+                st.error(f"Error extracting text from PDF: {str(e)}")
+                return f"Error extracting text from PDF: {str(e)}"
+                
+        elif "docx" in file_type.lower():
+            try:
+                import docx
+                doc_file = io.BytesIO(file_content)
+                doc = docx.Document(doc_file)
+                text = ""
+                for paragraph in doc.paragraphs:
+                    text += paragraph.text + "\n"
+                return text
+            except Exception as e:
+                st.error(f"Error extracting text from DOCX: {str(e)}")
+                return f"Error extracting text from DOCX: {str(e)}"
+                
+        elif "text" in file_type.lower() or "txt" in file_type.lower():
+            # Plain text file
+            return file_content.decode("utf-8")
+            
+        else:
+            st.warning(f"Unsupported file type: {file_type}. Please upload a PDF, DOCX, or TXT file.")
+            return f"Unsupported file type: {file_type}. Please upload a PDF, DOCX, or TXT file."
+            
+    except Exception as e:
+        st.error(f"Error processing resume: {str(e)}")
+        return f"Error processing resume: {str(e)}"
 
 
 def generate_skill_graph(user_skills, job_skills):
@@ -573,18 +680,39 @@ def skill_graph_page():
             st.write("#### File Details:")
             st.json(file_details)
             
+            # Extract text from the resume
+            resume_text = process_resume_text(uploaded_file.read(), uploaded_file.type)
+            
+            # Show a preview of the extracted text
+            with st.expander("Preview Extracted Text", expanded=False):
+                st.text_area("Resume Text", value=resume_text, height=200, disabled=True)
+            
             # Process the resume
             if st.button("Extract Skills from Resume"):
-                # Get resume text (in a real app, extract text based on file type)
-                resume_text = process_resume_text(uploaded_file.read(), uploaded_file.type)
-                
-                # Analyze resume with AI (in a real app, call OpenAI)
-                extracted_skills = analyze_resume_skills(resume_text)
-                
-                # Save extracted skills to session state
-                st.session_state.user_skills = extracted_skills
-                
-                st.success("Skills extracted successfully!")
+                with st.spinner("Analyzing resume with OpenAI... This may take a moment."):
+                    # Check for OpenAI API key
+                    import os
+                    openai_api_key = os.environ.get("OPENAI_API_KEY")
+                    if not openai_api_key:
+                        st.warning("⚠️ No OpenAI API key found. The app will use sample skills instead.")
+                        st.info("To extract actual skills from your resume, please provide an OpenAI API key.")
+                    
+                    # Analyze resume with AI
+                    extracted_skills = analyze_resume_skills(resume_text)
+                    
+                    # Save extracted skills to session state
+                    st.session_state.user_skills = extracted_skills
+                    
+                    st.success("Skills extracted successfully!")
+                    
+                    # Show the extracted skills
+                    st.write("### Extracted Skills:")
+                    for skill, data in extracted_skills.items():
+                        st.markdown(f"**{skill}** (Rating: {data['rating']}/5)")
+                        st.markdown(f"- *{data['experience']}*")
+                        
+                    # Suggest going to visualization tab
+                    st.info("Now go to the Skill Graph tab to visualize your skills relative to job requirements!")
         
         # Display and edit skills
         st.write("### Your Skills")
