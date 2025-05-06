@@ -280,7 +280,7 @@ with tab2:
             st.write("---")
 
 with tab3:
-    st.image(DEFAULT_IMAGES["data_viz_concept"], use_column_width=True)
+    st.image(DEFAULT_IMAGES["data_viz_concept"], use_container_width=True)
     
     st.write("## About This Tool")
     
@@ -322,15 +322,15 @@ with tab3:
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.image(DEFAULT_IMAGES["career_decision_1"], use_column_width=True)
+        st.image(DEFAULT_IMAGES["career_decision_1"], use_container_width=True)
         st.caption("Identifying key decision points in career paths")
     
     with col2:
-        st.image(DEFAULT_IMAGES["career_decision_2"], use_column_width=True)
+        st.image(DEFAULT_IMAGES["career_decision_2"], use_container_width=True)
         st.caption("Evaluating multiple options systematically")
     
     with col3:
-        st.image(DEFAULT_IMAGES["career_decision_3"], use_column_width=True)
+        st.image(DEFAULT_IMAGES["career_decision_3"], use_container_width=True)
         st.caption("Making data-informed career choices")
 
 # Footer
