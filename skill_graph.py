@@ -652,10 +652,20 @@ def skill_graph_page():
     
     # Initialize session state for user data
     if "user_skills" not in st.session_state:
-        st.session_state.user_skills = {}
+        # Try to load user skills from database first
+        db_skills = fetch_user_skills()
+        if db_skills:
+            st.session_state.user_skills = db_skills
+            print(f"Loaded {len(db_skills)} skills from database")
+        else:
+            st.session_state.user_skills = {}
     
     if "user_projects" not in st.session_state:
         st.session_state.user_projects = []
+        
+    # Initialize a flag for tracking if skills have been updated and need to be saved
+    if "skills_updated" not in st.session_state:
+        st.session_state.skills_updated = False
     
     # Create tabs for different sections
     profile_tab, visualization_tab, roadmap_tab, projects_tab = st.tabs([
@@ -738,6 +748,7 @@ def skill_graph_page():
                     # Update the rating if changed
                     if new_rating != data["rating"]:
                         st.session_state.user_skills[skill]["rating"] = new_rating
+                        st.session_state.skills_updated = True
                 
                 with col3:
                     if st.button("Remove", key=f"remove_{skill}"):
@@ -752,12 +763,14 @@ def skill_graph_page():
                 # Update the experience if changed
                 if new_experience != data["experience"]:
                     st.session_state.user_skills[skill]["experience"] = new_experience
+                    st.session_state.skills_updated = True
                 
                 st.write("---")
             
             # Remove skills marked for deletion
             for skill in skills_to_delete:
                 del st.session_state.user_skills[skill]
+                st.session_state.skills_updated = True
                 st.rerun()
         else:
             st.info("No skills in your profile yet. Upload your resume or add skills manually.")
@@ -775,6 +788,7 @@ def skill_graph_page():
                     "experience": new_experience,
                     "projects": []
                 }
+                st.session_state.skills_updated = True
                 st.success(f"Added {new_skill} to your profile!")
                 st.rerun()
     
@@ -997,6 +1011,7 @@ def skill_graph_page():
             
             # Update session state
             st.session_state.user_skills = updated_user_data["skills"]
+            st.session_state.skills_updated = True
             
             st.success(f"Added {project_info['name']} to your projects!")
             st.write("**Skills detected in this project:**")
@@ -1004,6 +1019,22 @@ def skill_graph_page():
                 st.markdown(f"- {skill}")
             
             st.rerun()
+
+
+    # Save any skills updates to the database if needed
+    if st.session_state.skills_updated:
+        try:
+            success = save_user_skills(st.session_state.user_skills)
+            if success:
+                st.session_state.skills_updated = False
+                # Only show success message if this isn't the first load
+                if not st.session_state.get('is_first_load', True):
+                    st.success("Skills saved to database successfully!")
+                st.session_state.is_first_load = False
+            else:
+                st.warning("Failed to save skills to database.")
+        except Exception as e:
+            st.error(f"Error saving skills to database: {e}")
 
 
 if __name__ == "__main__":
