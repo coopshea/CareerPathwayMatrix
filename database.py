@@ -93,7 +93,19 @@ class JobSkill(Base):
 
 # Create tables if they don't exist
 def init_db():
-    Base.metadata.create_all(engine)
+    # Check if migration is needed and perform it automatically
+    try:
+        if check_migration_needed():
+            print("Database schema needs to be updated. Performing automatic migration...")
+            recreate_tables()
+            print("Automatic database migration completed successfully!")
+        else:
+            # If no migration is needed, just create tables as normal
+            Base.metadata.create_all(engine)
+    except Exception as e:
+        print(f"Error during database initialization: {e}")
+        # Create tables anyway in case this is a new setup
+        Base.metadata.create_all(engine)
     
 # Import data from simplerData.py into the database
 def import_simpler_data():

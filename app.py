@@ -336,26 +336,21 @@ with tab7:
     
     st.write("## About This Tool")
     
-    # Add an admin section with database migration option
-    with st.expander("Admin Tools", expanded=False):
-        st.warning("⚠️ Warning: These tools modify the database and should be used with caution.")
+    # Add database health status indicator
+    with st.expander("System Status", expanded=False):
+        from database import test_connection, check_migration_needed
         
-        # Check if migration is needed
-        from database import check_migration_needed, recreate_tables
+        connection_ok = test_connection()
+        if connection_ok:
+            st.success("✅ Database connection is working properly.")
+        else:
+            st.error("❌ Database connection failed. Using file-based data instead.")
         
         migration_needed = check_migration_needed()
         if migration_needed:
-            st.error("Database schema is outdated and needs to be updated to support job postings and skills tracking.")
-            if st.button("Update Database Schema"):
-                with st.spinner("Updating database schema... This will recreate all tables and may take a minute."):
-                    success = recreate_tables()
-                    if success:
-                        st.success("Database schema updated successfully! Now you can add job postings and they will be stored in the database.")
-                        st.info("Please refresh the page to see the changes.")
-                    else:
-                        st.error("Failed to update database schema. Please check the logs for details.")
+            st.info("Database schema will be automatically updated on next restart.")
         else:
-            st.success("Database schema is up to date.")
+            st.success("✅ Database schema is up to date.")
     
     st.markdown("""
     ### Tool Purpose
