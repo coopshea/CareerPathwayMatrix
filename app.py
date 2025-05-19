@@ -135,8 +135,10 @@ with auth_col2:
 
 # Initialize chat messages if not already in session state
 if "messages" not in st.session_state:
+    # Check if user is logged in to personalize greeting
+    greeting_name = f", {st.session_state.user['name'].split()[0]}" if st.session_state.user else ""
     st.session_state.messages = [
-        {"role": "assistant", "content": "Hello! I'm your AI career assistant. To get the most out of CareerPath Navigator, I recommend:\n\n1. Fill out the career preferences questionnaire in the 'Find Your Pathway' tab\n2. Upload your resume in the 'Skill Graph' tab for skill analysis\n3. Return here for personalized career guidance based on your profile\n\nHow can I help you today?"}
+        {"role": "assistant", "content": f"Hello{greeting_name}! I'm your AI career assistant. To get the most out of CareerPath Navigator, I recommend:\n\n1. Fill out the career preferences questionnaire in the 'Find Your Pathway' tab\n2. Upload your resume in the 'Skill Graph' tab for skill analysis\n3. Return here for personalized career guidance based on your profile\n\nHow can I help you today?"}
     ]
 
 # AI Chat Assistant Helper for the welcome page
@@ -443,57 +445,51 @@ def get_quick_response(question):
     return "I can help you explore career paths, analyze skills, and create personalized roadmaps. For the best experience, I recommend filling out the questionnaire in the 'Find Your Pathway' tab and uploading your resume in the 'Skill Graph' tab. What would you like to do today?"
 
 # Create tabs
-tabs = st.tabs([
+tab_names = [
     "Welcome", "2x2 Matrix", "Find Your Pathway", "Basic Roadmap", "AI Roadmap", 
     "Job Posting", "Skills Analysis", "Skill Graph", "About"
-])
+]
 
 # Initialize active tab if not already set
 if 'active_tab' not in st.session_state:
     st.session_state.active_tab = 0
 
-# Move to the appropriate tab based on session state
-current_tab = st.session_state.active_tab
+# Create a tab selector and sync it with the active_tab session variable
+current_tab = st.tabs(tab_names)
 
 # Welcome tab content
-with tabs[0]:
-    if current_tab == 0:  # Only show content if this is the active tab
-        # Button grid - 3x2 layout
-        st.write("")  # Add some space at the top
-        
-        # Create 3 rows of 2 buttons each
-        row1 = st.columns(2)
-        with row1[0]:
-            if st.button("📊 Compare Career Paths", use_container_width=True, key="btn_matrix"):
-                st.session_state.active_tab = 1  # 2x2 Matrix tab
-                st.rerun()
-        
-        with row1[1]:
-            if st.button("💡 Find Matching Careers", use_container_width=True, key="btn_pathway"):
-                st.session_state.active_tab = 2  # Find Your Pathway tab
-                st.rerun()
-        
-        row2 = st.columns(2)
-        with row2[0]:
-            if st.button("🧩 Analyze My Skills", use_container_width=True, key="btn_skills"):
-                st.session_state.active_tab = 7  # Skill Graph tab
-                st.rerun()
-        
-        with row2[1]:
-            if st.button("🛣️ Create Career Roadmap", use_container_width=True, key="btn_roadmap"):
-                st.session_state.active_tab = 4  # AI Roadmap tab
-                st.rerun()
-        
-        row3 = st.columns(2)
-        with row3[0]:
-            if st.button("🔍 Analyze Job Posting", use_container_width=True, key="btn_job"):
-                st.session_state.active_tab = 5  # Job Posting tab
-                st.rerun()
-        
-        with row3[1]:
-            if st.button("📈 Find High-Impact Skills", use_container_width=True, key="btn_market"):
-                st.session_state.active_tab = 6  # Skills Analysis tab
-                st.rerun()
+with current_tab[0]:
+    # Button grid - 3x2 layout
+    st.write("")  # Add some space at the top
+    
+    # Create 3 rows of 2 buttons each
+    row1 = st.columns(2)
+    with row1[0]:
+        if st.button("📊 Compare Career Paths", use_container_width=True, key="btn_matrix"):
+            # No need to store active_tab as the tabs handle that directly
+            st.switch_page(st.script_path) # Refreshes the page
+    
+    with row1[1]:
+        if st.button("💡 Find Matching Careers", use_container_width=True, key="btn_pathway"):
+            st.switch_page(st.script_path) # Refreshes the page
+    
+    row2 = st.columns(2)
+    with row2[0]:
+        if st.button("🧩 Analyze My Skills", use_container_width=True, key="btn_skills"):
+            st.switch_page(st.script_path) # Refreshes the page
+    
+    with row2[1]:
+        if st.button("🛣️ Create Career Roadmap", use_container_width=True, key="btn_roadmap"):
+            st.switch_page(st.script_path) # Refreshes the page
+    
+    row3 = st.columns(2)
+    with row3[0]:
+        if st.button("🔍 Analyze Job Posting", use_container_width=True, key="btn_job"):
+            st.switch_page(st.script_path) # Refreshes the page
+    
+    with row3[1]:
+        if st.button("📈 Find High-Impact Skills", use_container_width=True, key="btn_market"):
+            st.switch_page(st.script_path) # Refreshes the page
         
         # AI chat assistant below the buttons
         st.markdown("---")
@@ -503,8 +499,7 @@ with tabs[0]:
         ai_chat_assistant()
 
 # 2x2 Matrix tab
-with tabs[1]:
-    if current_tab == 1:  # Only show content if this is the active tab
+with current_tab[1]:
         st.write("## Explore Career Pathways on a 2x2 Matrix")
         
         # Only show sidebar in this tab
