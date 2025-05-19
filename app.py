@@ -109,112 +109,90 @@ tab0, tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
 
 # Welcome tab content
 with tab0:
-    st.write("## For professionals at any stage seeking clarity and direction in their career journey")
+    # Button grid - 3x2 layout
+    st.write("")  # Add some space at the top
     
-    # Two-column layout for main content
-    col1, col2 = st.columns([2, 1])
+    # Create 3 rows of 2 buttons each
+    row1 = st.columns(2)
+    with row1[0]:
+        if st.button("📊 Compare Career Paths", use_container_width=True):
+            st.session_state.active_tab = 1  # 2x2 Matrix tab
+            st.rerun()
     
-    with col1:
-        st.write("## How can we help you today?")
-        
-        # User scenario buttons with clear icons and descriptions
-        scenario_cols = st.columns(2)
-        
-        with scenario_cols[0]:
-            st.markdown("#### Explore Career Options")
-            if st.button("📊 I want to compare different career paths", use_container_width=True):
-                st.session_state.active_tab = 1  # 2x2 Matrix tab
-                st.rerun()
-                
-            st.markdown("#### Understand Your Skills")
-            if st.button("🧩 I want to analyze my skills and identify gaps", use_container_width=True):
-                st.session_state.active_tab = 7  # Skill Graph tab
-                st.rerun()
-                
-            st.markdown("#### Evaluate Job Opportunities")
-            if st.button("🔍 I want to analyze a job posting", use_container_width=True):
-                st.session_state.active_tab = 5  # Job Posting tab
-                st.rerun()
-        
-        with scenario_cols[1]:
-            st.markdown("#### Get Personalized Recommendations")
-            if st.button("💡 I want to find career paths that match my preferences", use_container_width=True):
-                st.session_state.active_tab = 2  # Find Your Pathway tab
-                st.rerun()
-                
-            st.markdown("#### Create Development Plans")
-            if st.button("🛣️ I want a roadmap for my career development", use_container_width=True):
-                st.session_state.active_tab = 4  # AI Roadmap tab
-                st.rerun()
-                
-            st.markdown("#### Analyze Market Demands")
-            if st.button("📈 I want to identify high-impact skills to learn", use_container_width=True):
-                st.session_state.active_tab = 6  # Skills Analysis tab
-                st.rerun()
+    with row1[1]:
+        if st.button("💡 Find Matching Careers", use_container_width=True):
+            st.session_state.active_tab = 2  # Find Your Pathway tab
+            st.rerun()
     
-    with col2:
-        # AI chat assistant in a styled container
-        st.markdown("""
-            <div style='background-color: #f0f2f6; padding: 20px; border-radius: 10px;'>
-                <h3 style='text-align: center;'>Not sure where to start?</h3>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        ai_chat_assistant()
+    row2 = st.columns(2)
+    with row2[0]:
+        if st.button("🧩 Analyze My Skills", use_container_width=True):
+            st.session_state.active_tab = 7  # Skill Graph tab
+            st.rerun()
     
-    # Feature highlights
+    with row2[1]:
+        if st.button("🛣️ Create Career Roadmap", use_container_width=True):
+            st.session_state.active_tab = 4  # AI Roadmap tab
+            st.rerun()
+    
+    row3 = st.columns(2)
+    with row3[0]:
+        if st.button("🔍 Analyze Job Posting", use_container_width=True):
+            st.session_state.active_tab = 5  # Job Posting tab
+            st.rerun()
+    
+    with row3[1]:
+        if st.button("📈 Find High-Impact Skills", use_container_width=True):
+            st.session_state.active_tab = 6  # Skills Analysis tab
+            st.rerun()
+    
+    # AI chat assistant below the buttons
     st.markdown("---")
-    st.write("## Key Features")
+    st.markdown("### Not sure where to start?")
     
-    feature_cols = st.columns(3)
-    with feature_cols[0]:
-        st.markdown("### Visual Career Exploration")
-        st.markdown("Compare different career paths across metrics like income potential, risk level, and growth opportunity using our interactive 2x2 matrix.")
-    
-    with feature_cols[1]:
-        st.markdown("### AI-Powered Skill Analysis")
-        st.markdown("Upload your resume and get an instant analysis of your skills, plus recommendations for high-impact skills to develop.")
-    
-    with feature_cols[2]:
-        st.markdown("### Personalized Roadmaps")
-        st.markdown("Get step-by-step guidance on how to reach your career goals with customized development plans.")
+    # AI chat assistant
+    ai_chat_assistant()
 
 with tab1:
     st.write("## Explore Career Pathways on a 2x2 Matrix")
     
-    # Sidebar for matrix controls
-    st.sidebar.markdown("## Matrix Controls")
-    
-    # Category filters
-    selected_categories = st.sidebar.multiselect(
-        "Filter by Category",
-        ["All"] + categories,
-        default=["All"]
-    )
-    
-    if "All" in selected_categories:
-        filtered_pathways = pathways_data
-    else:
-        filtered_pathways = pathways_data[pathways_data['category'].isin(selected_categories)]
-    
-    # Select x and y axis metrics
-    x_metric = st.sidebar.selectbox(
-        "X-Axis Metric", 
-        list(metrics_data.keys()),
-        index=list(metrics_data.keys()).index("risk_level") if "risk_level" in metrics_data else 0
-    )
-    
-    y_metric = st.sidebar.selectbox(
-        "Y-Axis Metric", 
-        list(metrics_data.keys()),
-        index=list(metrics_data.keys()).index("success_probability") if "success_probability" in metrics_data else 0
-    )
-    
-    # Additional info for selected metrics
-    st.sidebar.markdown(f"### {metrics_data[x_metric]['name']}")
-    st.sidebar.write(metrics_data[x_metric]['description'])
-    st.sidebar.markdown(f"### {metrics_data[y_metric]['name']}")
-    st.sidebar.write(metrics_data[y_metric]['description'])
+    # Only show sidebar in this tab
+    with st.sidebar:
+        st.markdown("## Matrix Controls")
+        
+        # Category filters - add key parameter to fix duplicate element issue
+        selected_categories = st.multiselect(
+            "Filter by Category",
+            ["All"] + categories,
+            default=["All"],
+            key="matrix_categories"
+        )
+        
+        if "All" in selected_categories:
+            filtered_pathways = pathways_data
+        else:
+            filtered_pathways = pathways_data[pathways_data['category'].isin(selected_categories)]
+        
+        # Select x and y axis metrics - add keys
+        x_metric = st.selectbox(
+            "X-Axis Metric", 
+            list(metrics_data.keys()),
+            index=list(metrics_data.keys()).index("risk_level") if "risk_level" in metrics_data else 0,
+            key="x_axis_metric"
+        )
+        
+        y_metric = st.selectbox(
+            "Y-Axis Metric", 
+            list(metrics_data.keys()),
+            index=list(metrics_data.keys()).index("success_probability") if "success_probability" in metrics_data else 0,
+            key="y_axis_metric"
+        )
+        
+        # Additional info for selected metrics
+        st.markdown(f"### {metrics_data[x_metric]['name']}")
+        st.write(metrics_data[x_metric]['description'])
+        st.markdown(f"### {metrics_data[y_metric]['name']}")
+        st.write(metrics_data[y_metric]['description'])
     
     # Create the matrix visualization
     figure = create_matrix_visualization(filtered_pathways, x_metric, y_metric, metrics_data)
