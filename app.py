@@ -454,11 +454,14 @@ tab_names = [
 if 'active_tab' not in st.session_state:
     st.session_state.active_tab = 0
 
-# Create a tab selector and sync it with the active_tab session variable
-current_tab = st.tabs(tab_names)
+# Set the active tab from session state
+st.session_state.active_tab = st.session_state.get('active_tab', 0)
+
+# Create the tab container
+tabs = st.tabs(tab_names)
 
 # Welcome tab content
-with current_tab[0]:
+with tabs[0]:
     # Button grid - 3x2 layout
     st.write("")  # Add some space at the top
     
@@ -466,30 +469,35 @@ with current_tab[0]:
     row1 = st.columns(2)
     with row1[0]:
         if st.button("📊 Compare Career Paths", use_container_width=True, key="btn_matrix"):
-            # No need to store active_tab as the tabs handle that directly
-            st.switch_page(st.script_path) # Refreshes the page
+            st.session_state.active_tab = 1  # 2x2 Matrix tab
+            st.rerun()
     
     with row1[1]:
         if st.button("💡 Find Matching Careers", use_container_width=True, key="btn_pathway"):
-            st.switch_page(st.script_path) # Refreshes the page
+            st.session_state.active_tab = 2  # Find Your Pathway tab
+            st.rerun()
     
     row2 = st.columns(2)
     with row2[0]:
         if st.button("🧩 Analyze My Skills", use_container_width=True, key="btn_skills"):
-            st.switch_page(st.script_path) # Refreshes the page
+            st.session_state.active_tab = 7  # Skill Graph tab
+            st.rerun()
     
     with row2[1]:
         if st.button("🛣️ Create Career Roadmap", use_container_width=True, key="btn_roadmap"):
-            st.switch_page(st.script_path) # Refreshes the page
+            st.session_state.active_tab = 4  # AI Roadmap tab
+            st.rerun()
     
     row3 = st.columns(2)
     with row3[0]:
         if st.button("🔍 Analyze Job Posting", use_container_width=True, key="btn_job"):
-            st.switch_page(st.script_path) # Refreshes the page
+            st.session_state.active_tab = 5  # Job Posting tab
+            st.rerun()
     
     with row3[1]:
         if st.button("📈 Find High-Impact Skills", use_container_width=True, key="btn_market"):
-            st.switch_page(st.script_path) # Refreshes the page
+            st.session_state.active_tab = 6  # Skills Analysis tab
+            st.rerun()
         
         # AI chat assistant below the buttons
         st.markdown("---")
@@ -642,8 +650,7 @@ with current_tab[1]:
                         st.rerun()
 
 # Find Your Pathway tab
-with tabs[2]:
-    if current_tab == 2:  # Only show content if this is the active tab
+with current_tab[2]:
         st.write("## Find Pathways That Match Your Preferences")
         st.write("""
         Use the sliders below to indicate your preferences for different aspects of a career pathway. 
@@ -787,8 +794,7 @@ with tabs[2]:
                 st.write("---")
 
 # Basic Roadmap tab
-with tabs[3]:
-    if current_tab == 3:  # Only show content if this is the active tab
+with current_tab[3]:
         # Check if we're coming from a pathway detail view with a pre-selected pathway
         pre_selected_pathway = None
         if 'generate_roadmap_for' in st.session_state:
@@ -799,8 +805,7 @@ with tabs[3]:
         roadmap_generator_page(pre_selected_pathway, pathways_data, metrics_data)
 
 # AI Roadmap tab
-with tabs[4]:
-    if current_tab == 4:  # Only show content if this is the active tab
+with current_tab[4]:
         # Check if we're coming from a pathway detail view with a pre-selected pathway
         pre_selected_pathway = None
         if 'generate_roadmap_for' in st.session_state:
@@ -811,13 +816,11 @@ with tabs[4]:
         ai_roadmap_generator_page(pre_selected_pathway, pathways_data, metrics_data)
 
 # Job Posting tab
-with tabs[5]:
-    if current_tab == 5:  # Only show content if this is the active tab
+with current_tab[5]:
         job_posting_page(pathways_data, metrics_data)
 
 # Skills Analysis tab
-with tabs[6]:
-    if current_tab == 6:  # Only show content if this is the active tab
+with current_tab[6]:
         skills_analysis_page()
 
 # Skill Graph tab
