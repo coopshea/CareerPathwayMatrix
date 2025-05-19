@@ -131,7 +131,8 @@ class UserAuth:
                 # Update existing user
                 db_user.name = user_info['name']
                 db_user.email = user_info['email']
-                db_user.last_login = time.time()
+                # Convert to float to ensure compatibility
+                db_user.last_login = float(time.time())
             else:
                 # Create new user
                 db_user = User(
