@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import random
 from data import load_data, get_pathway_details, get_metrics_info
 from visualizations import create_matrix_visualization
 from recommendations import calculate_pathway_matches
@@ -13,24 +14,218 @@ from utils import create_pathway_card, DEFAULT_IMAGES
 
 # Configure page
 st.set_page_config(
-    page_title="Fast Track: Career Pathway Analysis",
-    page_icon="📊",
+    page_title="CareerPath Navigator",
+    page_icon="🧭",
     layout="wide"
 )
 
 # Load the data
 pathways_data, metrics_data, categories = load_data()
 
-# Main header
-st.markdown("""
-    <div style='text-align: center'>
-        <h1>Fast Track: Career Pathway Analysis</h1>
-        <h3>Interactive visualization and recommendation tool for wealth-building pathways</h3>
-    </div>
-""", unsafe_allow_html=True)
+# Initialize session state for current view
+if 'current_view' not in st.session_state:
+    st.session_state.current_view = 'landing'
 
-# Create tabs for different sections
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(["2x2 Matrix Explorer", "Find Your Pathway", "Basic Roadmap", "AI Roadmap Generator", "Add Job Posting", "Skills Analysis", "Skill Graph", "About"])
+# Function to set the current view
+def set_view(view_name):
+    st.session_state.current_view = view_name
+    st.rerun()
+
+# AI Chat Assistant Helper (placeholder for full implementation)
+def ai_chat_assistant():
+    st.write("### AI Career Assistant")
+    st.write("I can help guide you to the right features based on your needs.")
+    
+    # Initial questions to help route the user
+    initial_questions = [
+        "I'm considering changing careers and need to explore options",
+        "I want to understand my skills and identify gaps",
+        "I need to evaluate if a job opportunity aligns with my goals",
+        "I'm looking to create a roadmap for my career development",
+        "I'm not sure where to start - can you ask me some questions?"
+    ]
+    
+    selected_question = st.selectbox(
+        "What brings you here today?", 
+        initial_questions
+    )
+    
+    if st.button("Get Guidance"):
+        if "changing careers" in selected_question:
+            st.info("The Career Matrix will help you compare different pathways. Let's take you there!")
+            st.session_state.ai_recommendation = "matrix"
+        elif "skills" in selected_question:
+            st.info("The Skills Graph will help you understand your current skills and identify gaps. Let's go there!")
+            st.session_state.ai_recommendation = "skill_graph"
+        elif "job opportunity" in selected_question:
+            st.info("The Job Posting Analysis will help you evaluate specific opportunities. Let's check it out!")
+            st.session_state.ai_recommendation = "job_posting"
+        elif "roadmap" in selected_question:
+            st.info("The AI Roadmap Generator will create a personalized development plan. Let's explore that!")
+            st.session_state.ai_recommendation = "ai_roadmap"
+        else:
+            # More detailed conversation flow for undecided users
+            st.write("Let me ask you a few questions to help guide you:")
+            
+            career_stage = st.radio(
+                "Where are you in your career journey?",
+                ["Just starting out", "Mid-career", "Looking to make a change", "Advancing in current field"]
+            )
+            
+            main_goal = st.radio(
+                "What's your primary goal right now?",
+                ["Explore different career options", "Develop specific skills", "Find better opportunities", "Create a long-term plan"]
+            )
+            
+            if st.button("Get Personalized Recommendation"):
+                # Simple decision tree for recommendations
+                if career_stage == "Looking to make a change" or main_goal == "Explore different career options":
+                    st.success("Based on your situation, I recommend starting with the Career Matrix to explore different pathways!")
+                    st.session_state.ai_recommendation = "matrix"
+                elif main_goal == "Develop specific skills":
+                    st.success("Based on your situation, I recommend the Skills Graph to identify high-value skills to develop!")
+                    st.session_state.ai_recommendation = "skill_graph"
+                elif main_goal == "Find better opportunities":
+                    st.success("I recommend starting with the Job Posting Analysis to evaluate specific opportunities!")
+                    st.session_state.ai_recommendation = "job_posting"
+                else:
+                    st.success("The AI Roadmap Generator would be perfect for creating your long-term development plan!")
+                    st.session_state.ai_recommendation = "ai_roadmap"
+
+    # Handle navigation based on AI recommendation
+    if 'ai_recommendation' in st.session_state:
+        recommendation = st.session_state.ai_recommendation
+        
+        if recommendation == "matrix":
+            if st.button("Go to Career Matrix"):
+                set_view('matrix')
+        elif recommendation == "skill_graph":
+            if st.button("Go to Skills Graph"):
+                set_view('skill_graph')
+        elif recommendation == "job_posting":
+            if st.button("Go to Job Posting Analysis"):
+                set_view('job_posting')
+        elif recommendation == "ai_roadmap":
+            if st.button("Go to AI Roadmap Generator"):
+                set_view('ai_roadmap')
+
+# Main navigation for different views
+if st.session_state.current_view == 'landing':
+    # Landing Page
+    st.markdown("""
+        <div style='text-align: center'>
+            <h1>CareerPath Navigator</h1>
+            <h3>Find your path, build your skills, achieve your career goals</h3>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.write("### For professionals at any stage seeking clarity and direction in their career journey")
+    
+    # Two-column layout for main content
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.write("## How can we help you today?")
+        
+        # User scenario buttons with clear icons and descriptions
+        scenario_cols = st.columns(2)
+        
+        with scenario_cols[0]:
+            st.markdown("#### Explore Career Options")
+            if st.button("📊 I want to compare different career paths", use_container_width=True):
+                set_view('matrix')
+                
+            st.markdown("#### Understand Your Skills")
+            if st.button("🧩 I want to analyze my skills and identify gaps", use_container_width=True):
+                set_view('skill_graph')
+                
+            st.markdown("#### Evaluate Job Opportunities")
+            if st.button("🔍 I want to analyze a job posting", use_container_width=True):
+                set_view('job_posting')
+        
+        with scenario_cols[1]:
+            st.markdown("#### Get Personalized Recommendations")
+            if st.button("💡 I want to find career paths that match my preferences", use_container_width=True):
+                set_view('recommendations')
+                
+            st.markdown("#### Create Development Plans")
+            if st.button("🛣️ I want a roadmap for my career development", use_container_width=True):
+                set_view('ai_roadmap')
+                
+            st.markdown("#### Analyze Market Demands")
+            if st.button("📈 I want to identify high-impact skills to learn", use_container_width=True):
+                set_view('skills_analysis')
+    
+    with col2:
+        # AI chat assistant
+        st.markdown("""
+            <div style='background-color: #f0f2f6; padding: 20px; border-radius: 10px;'>
+                <h3 style='text-align: center;'>Not sure where to start?</h3>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        ai_chat_assistant()
+    
+    # Bottom navigation bar
+    st.markdown("---")
+    nav_cols = st.columns(4)
+    with nav_cols[0]:
+        st.markdown("#### Full Feature Menu")
+    with nav_cols[1]:
+        if st.button("About This Tool"):
+            set_view('about')
+    with nav_cols[2]:
+        if st.button("View All Features"):
+            # Create tabs for different sections when View All Features is clicked
+            st.session_state.current_view = 'all_features'
+            st.rerun()
+    with nav_cols[3]:
+        pass  # Reserved for future use
+            
+else:
+    # Create header with navigation back to landing page
+    header_cols = st.columns([1, 3, 1])
+    with header_cols[0]:
+        if st.button("← Back to Home"):
+            set_view('landing')
+    with header_cols[1]:
+        st.markdown("""
+            <div style='text-align: center'>
+                <h2>CareerPath Navigator</h2>
+            </div>
+        """, unsafe_allow_html=True)
+    with header_cols[2]:
+        pass  # Reserved for future use
+        
+    # Create tabs for different sections only when not on landing page
+    if st.session_state.current_view == 'all_features':
+        tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+            "2x2 Matrix", "Find Your Pathway", "Basic Roadmap", "AI Roadmap", 
+            "Job Posting", "Skills Analysis", "Skill Graph", "About"
+        ])
+    else:
+        # For individual feature views, create hidden tabs but only show the selected one
+        tab_names = ["2x2 Matrix", "Find Your Pathway", "Basic Roadmap", "AI Roadmap", 
+                    "Job Posting", "Skills Analysis", "Skill Graph", "About"]
+        tabs = st.tabs(tab_names)
+        tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = tabs
+        
+        # Map view names to tab indices
+        view_to_tab = {
+            'matrix': 0,
+            'recommendations': 1,
+            'roadmap': 2,
+            'ai_roadmap': 3,
+            'job_posting': 4,
+            'skills_analysis': 5,
+            'skill_graph': 6,
+            'about': 7
+        }
+        
+        # Show only the selected tab
+        if st.session_state.current_view in view_to_tab:
+            # This is a workaround since Streamlit doesn't allow programmatic tab selection
+            st.session_state.active_tab = view_to_tab[st.session_state.current_view]
 
 with tab1:
     st.write("## Explore Career Pathways on a 2x2 Matrix")
