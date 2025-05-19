@@ -10,6 +10,7 @@ from job_postings import job_posting_page
 from skills_analysis import skills_analysis_page
 from skill_graph import skill_graph_page
 from utils import create_pathway_card, DEFAULT_IMAGES
+from streamlit_chat import message
 
 # Configure page
 st.set_page_config(
@@ -29,74 +30,77 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# AI Chat Assistant Helper for the welcome page
+# Add caveat at the top
+st.warning("**FUNCTIONAL PROTOTYPE** - This application demonstrates core functionality (AI integration, skills extraction, etc). UI/UX design is not finalized.")
+
+# Initialize chat messages if not already in session state
+if "chat_messages" not in st.session_state:
+    st.session_state.chat_messages = [
+        {"role": "assistant", "content": "Hello! I'm your AI career assistant. How can I help you today?"}
+    ]
+
+# AI Chat Assistant Helper for the welcome page using streamlit-chat
 def ai_chat_assistant():
     st.write("### AI Career Assistant")
-    st.write("I can help guide you to the right features based on your needs.")
     
-    # Initial questions to help route the user
-    initial_questions = [
-        "I'm considering changing careers and need to explore options",
-        "I want to understand my skills and identify gaps",
-        "I need to evaluate if a job opportunity aligns with my goals",
-        "I'm looking to create a roadmap for my career development",
-        "I'm not sure where to start - can you ask me some questions?"
-    ]
-    
-    selected_question = st.selectbox(
-        "What brings you here today?", 
-        initial_questions
-    )
-    
-    if st.button("Get Guidance"):
-        if "changing careers" in selected_question:
-            st.session_state.active_tab = 0  # 2x2 Matrix tab
-            st.info("The Career Matrix will help you compare different pathways. I've selected that tab for you!")
-            st.rerun()
-        elif "skills" in selected_question:
-            st.session_state.active_tab = 6  # Skill Graph tab
-            st.info("The Skills Graph will help you understand your current skills and identify gaps. I've selected that tab for you!")
-            st.rerun()
-        elif "job opportunity" in selected_question:
-            st.session_state.active_tab = 4  # Job Posting tab
-            st.info("The Job Posting Analysis will help you evaluate specific opportunities. I've selected that tab for you!")
-            st.rerun()
-        elif "roadmap" in selected_question:
-            st.session_state.active_tab = 3  # AI Roadmap tab
-            st.info("The AI Roadmap Generator will create a personalized development plan. I've selected that tab for you!")
-            st.rerun()
+    # Display chat messages
+    for i, chat_message in enumerate(st.session_state.chat_messages):
+        if chat_message["role"] == "assistant":
+            message(chat_message["content"], key=f"msg_assistant_{i}")
         else:
-            # More detailed conversation flow for undecided users
-            st.write("Let me ask you a few questions to help guide you:")
-            
-            career_stage = st.radio(
-                "Where are you in your career journey?",
-                ["Just starting out", "Mid-career", "Looking to make a change", "Advancing in current field"]
-            )
-            
-            main_goal = st.radio(
-                "What's your primary goal right now?",
-                ["Explore different career options", "Develop specific skills", "Find better opportunities", "Create a long-term plan"]
-            )
-            
-            if st.button("Get Personalized Recommendation"):
-                # Simple decision tree for recommendations
-                if career_stage == "Looking to make a change" or main_goal == "Explore different career options":
-                    st.session_state.active_tab = 0  # 2x2 Matrix tab
-                    st.success("Based on your situation, I recommend starting with the Career Matrix to explore different pathways!")
-                    st.rerun()
-                elif main_goal == "Develop specific skills":
-                    st.session_state.active_tab = 6  # Skill Graph tab
-                    st.success("Based on your situation, I recommend the Skills Graph to identify high-value skills to develop!")
-                    st.rerun()
-                elif main_goal == "Find better opportunities":
-                    st.session_state.active_tab = 4  # Job Posting tab
-                    st.success("I recommend starting with the Job Posting Analysis to evaluate specific opportunities!")
-                    st.rerun()
-                else:
-                    st.session_state.active_tab = 3  # AI Roadmap tab
-                    st.success("The AI Roadmap Generator would be perfect for creating your long-term development plan!")
-                    st.rerun()
+            message(chat_message["content"], is_user=True, key=f"msg_user_{i}")
+    
+    # Chat input 
+    user_question = st.text_input("Ask me a question:", key="chat_input")
+    
+    if user_question and st.button("Send", key="send_button"):
+        # Add user message to chat
+        st.session_state.chat_messages.append({"role": "user", "content": user_question})
+        
+        # Process the question and provide a response
+        response = process_user_question(user_question)
+        
+        # Add assistant response to chat
+        st.session_state.chat_messages.append({"role": "assistant", "content": response})
+        st.rerun()
+
+def process_user_question(question):
+    """Process user questions and return appropriate responses with navigation guidance"""
+    question = question.lower()
+    
+    # Career exploration related questions
+    if any(keyword in question for keyword in ["compare", "career path", "explore", "options", "matrix"]):
+        st.session_state.active_tab = 1  # 2x2 Matrix tab
+        return "The Career Matrix will help you compare different pathways. I've selected that tab for you!"
+    
+    # Skills related questions
+    elif any(keyword in question for keyword in ["skill", "gap", "analyze", "resume"]):
+        st.session_state.active_tab = 7  # Skill Graph tab
+        return "The Skills Graph will help you understand your current skills and identify gaps. I've selected that tab for you!"
+    
+    # Job posting related questions
+    elif any(keyword in question for keyword in ["job", "posting", "opportunity", "job description"]):
+        st.session_state.active_tab = 5  # Job Posting tab
+        return "The Job Posting Analysis will help you evaluate specific opportunities. I've selected that tab for you!"
+    
+    # Roadmap related questions
+    elif any(keyword in question for keyword in ["roadmap", "plan", "develop", "steps"]):
+        st.session_state.active_tab = 4  # AI Roadmap tab
+        return "The AI Roadmap Generator will create a personalized development plan. I've selected that tab for you!"
+    
+    # Recommendations related questions
+    elif any(keyword in question for keyword in ["recommend", "match", "preference", "best fit"]):
+        st.session_state.active_tab = 2  # Find Your Pathway tab
+        return "The Pathway Finder will help you discover careers that match your preferences. I've selected that tab for you!"
+    
+    # Market analysis related questions
+    elif any(keyword in question for keyword in ["market", "demand", "trend", "high impact"]):
+        st.session_state.active_tab = 6  # Skills Analysis tab
+        return "The Skills Analysis will help you identify high-impact skills in the job market. I've selected that tab for you!"
+    
+    # General questions or unknown input
+    else:
+        return "I can help you explore career pathways, analyze your skills, evaluate job opportunities, create roadmaps, and more. Could you tell me more specifically what you're looking to accomplish today?"
 
 # Create tabs with Welcome tab first
 if 'active_tab' not in st.session_state:
