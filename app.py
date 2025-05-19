@@ -505,7 +505,11 @@ with tab1:
 
 # 2x2 Matrix tab
 with tab2:
-        st.write("## Explore Career Pathways on a 2x2 Matrix")
+        st.write("## Find Your Ideal Career Path")
+        st.write("""
+        Visualize career options based on how well they match your skills and interests. The 2x2 matrix helps you identify
+        paths that align with your strengths and passions, making career decisions easier and more fulfilling.
+        """)
         
         # Only show sidebar in this tab
         with st.sidebar:
@@ -524,18 +528,18 @@ with tab2:
             else:
                 filtered_pathways = pathways_data[pathways_data['category'].isin(selected_categories)]
             
-            # Select x and y axis metrics - add keys
+            # Select x and y axis metrics with defaults focused on skills and enjoyment
             x_metric = st.selectbox(
                 "X-Axis Metric", 
                 list(metrics_data.keys()),
-                index=list(metrics_data.keys()).index("risk_level") if "risk_level" in metrics_data else 0,
+                index=list(metrics_data.keys()).index("skill_match") if "skill_match" in metrics_data else 0,
                 key="x_axis_metric"
             )
             
             y_metric = st.selectbox(
                 "Y-Axis Metric", 
                 list(metrics_data.keys()),
-                index=list(metrics_data.keys()).index("success_probability") if "success_probability" in metrics_data else 0,
+                index=list(metrics_data.keys()).index("enjoyment_factor") if "enjoyment_factor" in metrics_data else 0,
                 key="y_axis_metric"
             )
             
