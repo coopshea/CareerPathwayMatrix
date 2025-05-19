@@ -38,86 +38,100 @@ st.markdown("""
 # Initialize session state variables
 if "user" not in st.session_state:
     st.session_state.user = None
-    
-if "show_login" not in st.session_state:
-    st.session_state.show_login = False
 
-# Display user authentication section in the top right
+# MANDATORY LOGIN CHECK
+# If user is not logged in, show only the login form and nothing else
+if st.session_state.user is None:
+    st.markdown("### Sign in to access CareerPath Navigator")
+    st.markdown("Please enter your information to proceed. This helps us understand who is using the application.")
+    
+    # Create two columns for the form and info
+    login_col1, login_col2 = st.columns([3, 2])
+    
+    with login_col1:
+        # Create the sign-in form
+        with st.form("login_form", clear_on_submit=False):
+            full_name = st.text_input("Full Name", key="name_input", placeholder="Your full name")
+            email = st.text_input("Email", key="email_input", placeholder="your.email@example.com")
+            organization = st.text_input("Organization (Optional)", key="org_input", placeholder="Company or school name")
+            
+            submitted = st.form_submit_button("Sign In")
+            
+            if submitted:
+                # Simple validation
+                if not full_name or not email or "@" not in email:
+                    st.error("Please enter a valid name and email address to continue.")
+                else:
+                    # Create a simple hash for the user identifier
+                    import hashlib
+                    user_id = hashlib.md5(email.encode()).hexdigest()
+                    
+                    # Store user information
+                    user_info = {
+                        "id": user_id,
+                        "name": full_name,
+                        "email": email,
+                        "organization": organization,
+                        "created_at": time.time(),
+                        "last_login": time.time()
+                    }
+                    
+                    # Save to session state
+                    st.session_state.user = user_info
+                    
+                    # Save to database (to be implemented in the future)
+                    try:
+                        session = Session()
+                        db_user = session.query(User).filter(User.id == user_id).first()
+                        if db_user:
+                            # Update existing user
+                            db_user.name = full_name
+                            db_user.email = email
+                            db_user.last_login = float(time.time())
+                        else:
+                            # Create new user
+                            db_user = User(
+                                id=user_id,
+                                name=full_name,
+                                email=email,
+                                created_at=float(time.time()),
+                                last_login=float(time.time())
+                            )
+                            session.add(db_user)
+                        session.commit()
+                        session.close()
+                    except Exception as e:
+                        print(f"Error saving user to database: {e}")
+                    
+                    st.success(f"Welcome, {full_name}!")
+                    st.rerun()
+    
+    with login_col2:
+        st.markdown("""
+        ### Why Sign In?
+        
+        Your information helps us:
+        
+        - Track who is using the platform
+        - Contact you about updates and features
+        - Save your career preferences
+        - Provide personalized recommendations
+        - Remember your uploads and chat history
+        
+        We respect your privacy and do not share your data with third parties.
+        """)
+    
+    # Stop execution here to force login
+    st.stop()
+
+# If we get here, the user is logged in
+# Show small user info and logout in the corner
 auth_col1, auth_col2 = st.columns([3, 1])
 with auth_col2:
-    # Show user info if logged in, otherwise show login button
-    if st.session_state.user is not None:
-        st.write(f"**Signed in as:** {st.session_state.user['name']}")
-        if st.button("Sign Out", key="nav_signout_btn"):
-            st.session_state.user = None
-            st.rerun()
-    else:
-        if st.button("Sign In", key="nav_signin_btn"):
-            st.session_state.show_login = True
-            st.rerun()
-
-# Show login form if needed
-if st.session_state.show_login and st.session_state.user is None:
-    st.markdown("### Sign in to personalize your experience")
-    
-    # Create the sign-in form
-    with st.form("login_form"):
-        full_name = st.text_input("Full Name")
-        email = st.text_input("Email")
-        
-        submitted = st.form_submit_button("Sign In")
-        
-        if submitted:
-            # Simple validation
-            if not full_name or not email or "@" not in email:
-                st.error("Please enter a valid name and email address.")
-            else:
-                # Create a simple hash for the user identifier
-                import hashlib
-                user_id = hashlib.md5(email.encode()).hexdigest()
-                
-                # Store user information
-                user_info = {
-                    "id": user_id,
-                    "name": full_name,
-                    "email": email,
-                    "created_at": time.time(),
-                    "last_login": time.time()
-                }
-                
-                # Save to session state
-                st.session_state.user = user_info
-                st.session_state.show_login = False
-                
-                # Save to database (commented out until database issues are resolved)
-                """
-                try:
-                    session = Session()
-                    db_user = session.query(User).filter(User.id == user_id).first()
-                    if db_user:
-                        # Update existing user
-                        db_user.name = full_name
-                        db_user.email = email
-                        db_user.last_login = time.time()
-                    else:
-                        # Create new user
-                        db_user = User(
-                            id=user_id,
-                            name=full_name,
-                            email=email,
-                            created_at=time.time(),
-                            last_login=time.time()
-                        )
-                        session.add(db_user)
-                    session.commit()
-                    session.close()
-                except Exception as e:
-                    st.warning(f"Could not save user to database, but you're still signed in for this session.")
-                    print(f"Error saving user: {e}")
-                """
-                
-                st.success(f"Welcome, {full_name}!")
-                st.rerun()
+    st.write(f"**Signed in as:** {st.session_state.user['name']}")
+    if st.button("Sign Out", key="nav_signout_btn"):
+        st.session_state.user = None
+        st.rerun()
 
 # Initialize chat messages if not already in session state
 if "messages" not in st.session_state:
