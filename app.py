@@ -454,14 +454,11 @@ tab_names = [
 if 'active_tab' not in st.session_state:
     st.session_state.active_tab = 0
 
-# Set the active tab from session state
-st.session_state.active_tab = st.session_state.get('active_tab', 0)
-
-# Create the tab container
-tabs = st.tabs(tab_names)
+# Create the tabs at the top of the page
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(tab_names)
 
 # Welcome tab content
-with tabs[0]:
+with tab1:
     # Button grid - 3x2 layout
     st.write("")  # Add some space at the top
     
@@ -507,7 +504,7 @@ with tabs[0]:
         ai_chat_assistant()
 
 # 2x2 Matrix tab
-with current_tab[1]:
+with tab2:
         st.write("## Explore Career Pathways on a 2x2 Matrix")
         
         # Only show sidebar in this tab
@@ -650,7 +647,7 @@ with current_tab[1]:
                         st.rerun()
 
 # Find Your Pathway tab
-with current_tab[2]:
+with tab3:
         st.write("## Find Pathways That Match Your Preferences")
         st.write("""
         Use the sliders below to indicate your preferences for different aspects of a career pathway. 
@@ -794,7 +791,7 @@ with current_tab[2]:
                 st.write("---")
 
 # Basic Roadmap tab
-with current_tab[3]:
+with tab4:
         # Check if we're coming from a pathway detail view with a pre-selected pathway
         pre_selected_pathway = None
         if 'generate_roadmap_for' in st.session_state:
@@ -805,7 +802,7 @@ with current_tab[3]:
         roadmap_generator_page(pre_selected_pathway, pathways_data, metrics_data)
 
 # AI Roadmap tab
-with current_tab[4]:
+with tab5:
         # Check if we're coming from a pathway detail view with a pre-selected pathway
         pre_selected_pathway = None
         if 'generate_roadmap_for' in st.session_state:
@@ -816,7 +813,7 @@ with current_tab[4]:
         ai_roadmap_generator_page(pre_selected_pathway, pathways_data, metrics_data)
 
 # Job Posting tab
-with current_tab[5]:
+with tab6:
         job_posting_page(pathways_data, metrics_data)
 
 # Skills Analysis tab
