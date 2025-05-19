@@ -13,7 +13,7 @@ from utils import create_pathway_card, DEFAULT_IMAGES
 
 # Configure page
 st.set_page_config(
-    page_title="The $10 Million Fast Track: Career Pathway Analysis",
+    page_title="Fast Track: Career Pathway Analysis",
     page_icon="📊",
     layout="wide"
 )
@@ -24,7 +24,7 @@ pathways_data, metrics_data, categories = load_data()
 # Main header
 st.markdown("""
     <div style='text-align: center'>
-        <h1>The $10 Million Fast Track: Career Pathway Analysis</h1>
+        <h1>Fast Track: Career Pathway Analysis</h1>
         <h3>Interactive visualization and recommendation tool for wealth-building pathways</h3>
     </div>
 """, unsafe_allow_html=True)
