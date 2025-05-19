@@ -43,64 +43,168 @@ if "chat_messages" not in st.session_state:
 def ai_chat_assistant():
     st.write("### AI Career Assistant")
     
-    # Display chat messages
-    for i, chat_message in enumerate(st.session_state.chat_messages):
+    # Initialize the AI mode setting if not already in session state
+    if 'use_ai_chat' not in st.session_state:
+        st.session_state.use_ai_chat = False
+        
+    # Add option to toggle between AI-powered and rule-based responses
+    with st.expander("Chat Settings", expanded=False):
+        st.toggle("Use OpenAI for more intelligent responses", 
+                 key="use_ai_chat", 
+                 help="When enabled, uses your OpenAI API key to generate more natural and intelligent responses. May be slower than rule-based responses.")
+        
+        if st.session_state.use_ai_chat:
+            import os
+            api_key = os.environ.get("OPENAI_API_KEY")
+            if not api_key:
+                st.warning("No OpenAI API key found. Please add your API key to enable AI-powered chat.")
+            else:
+                st.success("OpenAI API key detected. AI-powered chat is enabled.")
+    
+    # Display chat messages (only show the last 4 messages to reduce rendering load)
+    for i, chat_message in enumerate(st.session_state.chat_messages[-4:]):
         if chat_message["role"] == "assistant":
             message(chat_message["content"], key=f"msg_assistant_{i}")
         else:
             message(chat_message["content"], is_user=True, key=f"msg_user_{i}")
     
-    # Chat input 
-    user_question = st.text_input("Ask me a question:", key="chat_input")
+    # Chat input with auto-submit when Enter is pressed
+    user_question = st.text_input("Ask me a question:", key="chat_input", 
+                                 on_change=process_input if "chat_input" in st.session_state else None)
     
-    if user_question and st.button("Send", key="send_button"):
+    # Add a button for those who prefer clicking
+    button_col1, button_col2 = st.columns([1, 5])
+    with button_col1:
+        if st.button("Send", key="send_button"):
+            process_input()
+
+# Function to process user input when submitted
+def process_input():
+    if st.session_state.chat_input.strip():
+        # Get the user's question
+        user_question = st.session_state.chat_input
+        
+        # Clear the input field
+        st.session_state.chat_input = ""
+        
         # Add user message to chat
         st.session_state.chat_messages.append({"role": "user", "content": user_question})
         
-        # Process the question and provide a response
-        response = process_user_question(user_question)
+        # Check if AI mode is enabled and OpenAI API key is available
+        if 'use_ai_chat' in st.session_state and st.session_state.use_ai_chat:
+            # Try to get an AI-powered response using OpenAI
+            try:
+                import os
+                from openai import OpenAI
+                
+                # Get the API key from environment variable
+                api_key = os.environ.get("OPENAI_API_KEY")
+                if not api_key:
+                    response = "I couldn't access the OpenAI API key. Using rule-based responses instead.\n\n" + get_quick_response(user_question)
+                else:
+                    # Create OpenAI client
+                    client = OpenAI(api_key=api_key)
+                    
+                    # Generate response with context about the application
+                    ai_response = client.chat.completions.create(
+                        model="gpt-4o",  # Use the latest model
+                        messages=[
+                            {"role": "system", "content": """You are a helpful career assistant in the CareerPath Navigator application. 
+                            You can guide users to different features:
+                            - 2x2 Matrix (tab 1): For comparing career paths visually
+                            - Find Your Pathway (tab 2): For matching preferences to careers
+                            - Basic Roadmap (tab 3): For generating simple career roadmaps
+                            - AI Roadmap (tab 4): For generating AI-powered personalized roadmaps
+                            - Job Posting (tab 5): For analyzing job opportunities
+                            - Skills Analysis (tab 6): For finding high-impact skills in the market
+                            - Skill Graph (tab 7): For analyzing user skills and gaps
+                            
+                            Keep responses friendly, concise and helpful. If the user wants to use a feature, 
+                            indicate which tab they should use by setting the active_tab session variable."""},
+                            {"role": "user", "content": user_question}
+                        ],
+                        max_tokens=150
+                    )
+                    
+                    response = ai_response.choices[0].message.content
+                    
+                    # Extract any tab guidance from the AI response
+                    tab_keywords = {
+                        "2x2 matrix": 1,
+                        "career matrix": 1, 
+                        "find your pathway": 2,
+                        "matching": 2,
+                        "preferences": 2,
+                        "basic roadmap": 3,
+                        "ai roadmap": 4,
+                        "roadmap generator": 4,
+                        "job posting": 5,
+                        "analyze job": 5,
+                        "skills analysis": 6,
+                        "high-impact skills": 6,
+                        "skill graph": 7,
+                        "skill gaps": 7
+                    }
+                    
+                    # Check if any keywords appear in the response
+                    response_lower = response.lower()
+                    for keyword, tab_idx in tab_keywords.items():
+                        if keyword in response_lower:
+                            st.session_state.active_tab = tab_idx
+                            break
+            except Exception as e:
+                response = f"I encountered an error with the AI response. Using rule-based responses instead.\n\n" + get_quick_response(user_question)
+        else:
+            # Use the simple rule-based system for low latency
+            response = get_quick_response(user_question)
         
         # Add assistant response to chat
         st.session_state.chat_messages.append({"role": "assistant", "content": response})
+        
+        # Rerun to update the UI
         st.rerun()
 
-def process_user_question(question):
-    """Process user questions and return appropriate responses with navigation guidance"""
+def get_quick_response(question):
+    """Provide quick responses based on keywords for low latency"""
     question = question.lower()
     
-    # Career exploration related questions
-    if any(keyword in question for keyword in ["compare", "career path", "explore", "options", "matrix"]):
-        st.session_state.active_tab = 1  # 2x2 Matrix tab
-        return "The Career Matrix will help you compare different pathways. I've selected that tab for you!"
+    # Simple mapping of keywords to responses and tab navigation
+    response_map = {
+        "compare": (1, "I'll show you the Career Matrix to compare different paths."),
+        "career path": (1, "Let's explore career paths in the 2x2 Matrix."),
+        "explore": (1, "The Career Matrix is perfect for exploration."),
+        "matrix": (1, "Opening the 2x2 Matrix visualization for you."),
+        
+        "skill": (7, "Let's check out your skills in the Skill Graph."),
+        "gap": (7, "The Skill Graph will help identify your skill gaps."),
+        "analyze": (7, "I'll help you analyze your skills with our Skill Graph."),
+        "resume": (7, "Upload your resume in the Skill Graph tab to analyze your skills."),
+        
+        "job": (5, "Let's analyze a job posting for you."),
+        "posting": (5, "The Job Posting analyzer will help evaluate opportunities."),
+        "opportunity": (5, "I'll open the Job Posting analyzer for you."),
+        
+        "roadmap": (4, "Let's create a career roadmap for you."),
+        "plan": (4, "The AI Roadmap generator will help you plan your career."),
+        "develop": (4, "Let's develop your career plan with the AI Roadmap."),
+        
+        "recommend": (2, "Let's find pathways that match your preferences."),
+        "match": (2, "The Pathway Finder will help match you with careers."),
+        "preference": (2, "I'll help you find careers based on your preferences."),
+        
+        "market": (6, "Let's analyze market trends in Skills Analysis."),
+        "demand": (6, "The Skills Analysis tool shows high-demand skills."),
+        "high impact": (6, "I'll show you high-impact skills in the market.")
+    }
     
-    # Skills related questions
-    elif any(keyword in question for keyword in ["skill", "gap", "analyze", "resume"]):
-        st.session_state.active_tab = 7  # Skill Graph tab
-        return "The Skills Graph will help you understand your current skills and identify gaps. I've selected that tab for you!"
+    # Check for keyword matches
+    for keyword, (tab_index, response) in response_map.items():
+        if keyword in question:
+            st.session_state.active_tab = tab_index
+            return response
     
-    # Job posting related questions
-    elif any(keyword in question for keyword in ["job", "posting", "opportunity", "job description"]):
-        st.session_state.active_tab = 5  # Job Posting tab
-        return "The Job Posting Analysis will help you evaluate specific opportunities. I've selected that tab for you!"
-    
-    # Roadmap related questions
-    elif any(keyword in question for keyword in ["roadmap", "plan", "develop", "steps"]):
-        st.session_state.active_tab = 4  # AI Roadmap tab
-        return "The AI Roadmap Generator will create a personalized development plan. I've selected that tab for you!"
-    
-    # Recommendations related questions
-    elif any(keyword in question for keyword in ["recommend", "match", "preference", "best fit"]):
-        st.session_state.active_tab = 2  # Find Your Pathway tab
-        return "The Pathway Finder will help you discover careers that match your preferences. I've selected that tab for you!"
-    
-    # Market analysis related questions
-    elif any(keyword in question for keyword in ["market", "demand", "trend", "high impact"]):
-        st.session_state.active_tab = 6  # Skills Analysis tab
-        return "The Skills Analysis will help you identify high-impact skills in the job market. I've selected that tab for you!"
-    
-    # General questions or unknown input
-    else:
-        return "I can help you explore career pathways, analyze your skills, evaluate job opportunities, create roadmaps, and more. Could you tell me more specifically what you're looking to accomplish today?"
+    # Default response if no match
+    return "I can help you explore career paths, analyze skills, evaluate job opportunities, and more. What specific aspect of your career are you interested in today?"
 
 # Create tabs
 tabs = st.tabs([
