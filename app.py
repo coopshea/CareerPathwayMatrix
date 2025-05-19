@@ -32,9 +32,6 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# Add caveat at the top
-st.warning("**FUNCTIONAL PROTOTYPE** - This application demonstrates core functionality (AI integration, skills extraction, etc). UI/UX design is not finalized.")
-
 # Initialize chat messages if not already in session state
 if "messages" not in st.session_state:
     st.session_state.messages = [
@@ -52,6 +49,9 @@ def ai_chat_assistant():
     This AI assistant can provide guidance about CareerPath Navigator features and career advice.
     It has a limit of 10 messages per session to ensure fair usage.
     """)
+    
+    # Add caveat below the chat assistant
+    st.warning("**FUNCTIONAL PROTOTYPE** - This application demonstrates core functionality (AI integration, skills extraction, etc). UI/UX design is not finalized.")
     
     # Initialize message counter
     if 'message_count' not in st.session_state:
@@ -94,19 +94,120 @@ def ai_chat_assistant():
         # Increment message counter
         st.session_state.message_count += 1
         
-        # Get API-powered response by default
-        response = get_ai_response(prompt)
-            
-        # Display assistant response in chat message container
+        # Create a placeholder for the assistant's response
         with st.chat_message("assistant"):
-            st.markdown(response)
+            response_placeholder = st.empty()
+            
+            # Stream the response from API
+            full_response = stream_ai_response(prompt, response_placeholder)
             
         # Add assistant response to chat history
-        st.session_state.messages.append({"role": "assistant", "content": response})
+        st.session_state.messages.append({"role": "assistant", "content": full_response})
 
-# Get AI-powered response using OpenAI
+# Stream AI-powered response with word-by-word display
+def stream_ai_response(question, placeholder):
+    """Generate and stream an AI-powered response using OpenAI API"""
+    # Handle None case
+    if question is None:
+        default_response = "I can help you explore different career paths and develop your skills. What would you like to know?"
+        placeholder.markdown(default_response)
+        return default_response
+        
+    try:
+        # Get the API key from environment variable
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            fallback = "I couldn't access the OpenAI API key. Using rule-based responses instead.\n\n" + get_quick_response(question)
+            placeholder.markdown(fallback)
+            return fallback
+        
+        from openai import OpenAI
+        
+        # Create OpenAI client
+        client = OpenAI(api_key=api_key)
+        
+        # System message for the chat context
+        system_message = """You are a helpful career assistant in the CareerPath Navigator application. 
+        You should encourage users to:
+        1. Fill out the career preferences questionnaire in the 'Find Your Pathway' tab
+        2. Upload their resume in the 'Skill Graph' tab for skill analysis
+        3. Return to chat for personalized guidance based on their profile
+        
+        You can guide users to different features:
+        - 2x2 Matrix (tab 1): For comparing career paths visually
+        - Find Your Pathway (tab 2): For matching preferences to careers
+        - Basic Roadmap (tab 3): For generating simple career roadmaps
+        - AI Roadmap (tab 4): For generating AI-powered personalized roadmaps
+        - Job Posting (tab 5): For analyzing job opportunities
+        - Skills Analysis (tab 6): For finding high-impact skills in the market
+        - Skill Graph (tab 7): For analyzing user skills and gaps
+        
+        Keep responses friendly, concise and helpful. Always recommend the appropriate tool
+        based on what the user is trying to accomplish."""
+        
+        # Generate streaming response with context about the application
+        stream = client.chat.completions.create(
+            model="gpt-4o",  # Use the latest model
+            messages=[
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": question}
+            ],
+            max_tokens=250,
+            stream=True
+        )
+        
+        # Process the streaming response
+        collected_chunks = []
+        collected_content = ""
+        
+        # Display the streaming response in real-time
+        for chunk in stream:
+            if chunk.choices[0].delta.content is not None:
+                content_piece = chunk.choices[0].delta.content
+                collected_chunks.append(content_piece)
+                collected_content += content_piece
+                placeholder.markdown(collected_content + "▌")
+        
+        # Display the final response without cursor
+        placeholder.markdown(collected_content)
+        
+        # Extract any tab guidance from the AI response
+        tab_keywords = {
+            "2x2 matrix": 1,
+            "career matrix": 1, 
+            "find your pathway": 2,
+            "matching": 2,
+            "preferences": 2,
+            "basic roadmap": 3,
+            "ai roadmap": 4,
+            "roadmap generator": 4,
+            "job posting": 5,
+            "analyze job": 5,
+            "skills analysis": 6,
+            "high-impact skills": 6,
+            "skill graph": 7,
+            "skill gaps": 7
+        }
+        
+        # Check if any keywords appear in the response
+        if collected_content and isinstance(collected_content, str):
+            response_lower = collected_content.lower()
+            for keyword, tab_idx in tab_keywords.items():
+                if keyword in response_lower:
+                    st.session_state.active_tab = tab_idx
+                    break
+                
+        return collected_content
+        
+    except Exception as e:
+        # Fall back to rule-based response
+        fallback = f"I encountered an error with the AI response. Using rule-based responses instead.\n\n" + get_quick_response(question)
+        placeholder.markdown(fallback)
+        return fallback
+
+# Get AI-powered response using OpenAI (non-streaming version)
 def get_ai_response(question):
-    """Generate an AI-powered response using OpenAI API"""
+    """Generate an AI-powered response using OpenAI API (for backward compatibility)"""
     # Handle None case
     if question is None:
         return "I can help you explore different career paths and develop your skills. What would you like to know?"
