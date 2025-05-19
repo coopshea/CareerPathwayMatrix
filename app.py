@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import time
 import os
+import json
 from data import load_data, get_pathway_details, get_metrics_info
 from visualizations import create_matrix_visualization
 from recommendations import calculate_pathway_matches
@@ -13,6 +14,8 @@ from skills_analysis import skills_analysis_page
 from skill_graph import skill_graph_page
 from utils import create_pathway_card, DEFAULT_IMAGES
 from streamlit_chat import message
+from user_auth import UserAuth
+from database import Session, User, ChatMessage, UserDocument
 
 # Configure page
 st.set_page_config(
@@ -31,6 +34,21 @@ st.markdown("""
         <h3>Find your path, build your skills, achieve your career goals</h3>
     </div>
 """, unsafe_allow_html=True)
+
+# Display user authentication section in the top right
+auth_col1, auth_col2 = st.columns([3, 1])
+with auth_col2:
+    # Show user info if logged in, otherwise show login button
+    if UserAuth.is_authenticated():
+        UserAuth.display_user_info()
+    else:
+        if st.button("Sign In", key="nav_signin_btn"):
+            st.session_state.show_login = True
+            st.rerun()
+
+# Show login form if needed
+if st.session_state.get("show_login", False) and not UserAuth.is_authenticated():
+    UserAuth.login_user_form()
 
 # Initialize chat messages if not already in session state
 if "messages" not in st.session_state:

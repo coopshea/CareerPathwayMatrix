@@ -1,9 +1,9 @@
 import os
 import json
 import pandas as pd
-from sqlalchemy import create_engine, Column, Integer, String, Float, JSON, MetaData, Table, Text, Boolean, DateTime
+from sqlalchemy import create_engine, Column, Integer, String, Float, JSON, MetaData, Table, Text, Boolean, DateTime, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
 
 # Get database URL from environment variables
@@ -92,10 +92,73 @@ class JobSkill(Base):
         }
 
 
+# User Model for authentication
+class User(Base):
+    __tablename__ = 'users'
+    
+    id = Column(String, primary_key=True)  # md5 hash of email
+    name = Column(String, nullable=False)
+    email = Column(String, nullable=False, unique=True)
+    created_at = Column(Float, default=datetime.utcnow().timestamp)
+    last_login = Column(Float, default=datetime.utcnow().timestamp)
+    preferences = Column(JSON, default=dict)  # Store user preferences
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'email': self.email,
+            'created_at': self.created_at,
+            'last_login': self.last_login,
+            'preferences': self.preferences
+        }
+
+# User Document Model (for storing resume, etc.)
+class UserDocument(Base):
+    __tablename__ = 'user_documents'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(String, ForeignKey('users.id'))
+    name = Column(String, nullable=False)
+    doc_type = Column(String, nullable=False)  # resume, cover_letter, etc.
+    content = Column(Text)  # Raw text content of document
+    extracted_data = Column(JSON)  # Structured data extracted from document
+    upload_date = Column(DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'name': self.name,
+            'doc_type': self.doc_type,
+            'content': self.content[:100] + "..." if self.content and len(self.content) > 100 else self.content,
+            'upload_date': self.upload_date.isoformat() if self.upload_date else None
+        }
+
+# Chat Message Model
+class ChatMessage(Base):
+    __tablename__ = 'chat_messages'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(String, ForeignKey('users.id'))
+    role = Column(String, nullable=False)  # user or assistant
+    content = Column(Text, nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'role': self.role,
+            'content': self.content,
+            'timestamp': self.timestamp.isoformat() if self.timestamp else None
+        }
+
 class UserSkill(Base):
     __tablename__ = 'user_skills'
     
     id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(String, ForeignKey('users.id'))  # New: Link to user
     name = Column(String, nullable=False, index=True)  # The skill name
     rating = Column(Integer, default=1)  # Rating from 1-5
     experience = Column(Text)  # Description of experience with this skill
@@ -106,6 +169,7 @@ class UserSkill(Base):
     def to_dict(self):
         return {
             'id': self.id,
+            'user_id': self.user_id,
             'name': self.name,
             'rating': self.rating,
             'experience': self.experience,
