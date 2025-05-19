@@ -454,8 +454,8 @@ tab_names = [
 if 'active_tab' not in st.session_state:
     st.session_state.active_tab = 0
 
-# Create the tabs at the top of the page
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(tab_names)
+# Create the tabs at the top of the page - there are 9 tabs total
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs(tab_names)
 
 # Welcome tab content
 with tab1:
