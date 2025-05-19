@@ -565,27 +565,54 @@ def ai_roadmap_generator_page(pathway=None, pathways_df=None, metrics_data=None)
             preview = file_content[:1000] + "..." if len(file_content) > 1000 else file_content
             st.text_area("First 1000 characters of your resume:", preview, height=200, key="resume_preview")
             
-            generate_button2 = st.button("Generate Roadmap from Resume", key="btn_resume")
+            # Add user-provided information
+            resume_skills = []
+            if skills_input:
+                resume_skills = [skill.strip() for skill in skills_input.split(',')]
+                
+            generate_button2 = st.button("Generate Personalized Career Plan", key="btn_resume")
             
             if generate_button2:
-                with st.spinner("Analyzing your resume and generating your personalized roadmap..."):
+                with st.spinner("Creating your personalized path to your dream job..."):
                     # Process the resume
                     resume_analysis = process_resume(file_content)
                     
-                    # Generate the roadmap
-                    roadmap = generate_ai_roadmap(pathway, {
+                    # Add additional user info to resume analysis
+                    if current_role and "current_position" not in resume_analysis:
+                        resume_analysis["current_position"] = current_role
+                    
+                    if "years_experience" not in resume_analysis:
+                        resume_analysis["years_experience"] = years_experience
+                    
+                    if resume_skills:
+                        if "skills" in resume_analysis and isinstance(resume_analysis["skills"], list):
+                            resume_analysis["skills"].extend(resume_skills)
+                        else:
+                            resume_analysis["skills"] = resume_skills
+                    
+                    # Create comprehensive user data including dream job
+                    user_data = {
                         "resume_analysis": resume_analysis,
-                        "resume_content": file_content[:5000]  # Limit to first 5000 chars for API
-                    }, metrics_data)
+                        "resume_content": file_content[:5000],  # Limit to first 5000 chars for API
+                        "dream_job": dream_job,
+                        "current_role": current_role,
+                        "years_experience": years_experience,
+                        "user_skills": resume_skills,
+                        "career_goal": f"Transition to {dream_job}" if dream_job else "Career advancement"
+                    }
+                    
+                    # Generate the roadmap with all user data
+                    roadmap = generate_ai_roadmap(pathway, user_data, metrics_data)
                     
                     # Display the roadmap
                     display_ai_roadmap(roadmap)
     
     with input_tab3:
-        st.write("## Step 2: Combined Approach (Recommended)")
+        st.write("## Step 3: Complete Profile (Recommended)")
         st.write("""
-        For the most personalized roadmap, both upload your resume and complete the questionnaire.
-        This gives the AI the most complete picture of your background and preferences.
+        For the most personalized career plan, provide both your resume and your preferences through the questionnaire. 
+        This approach gives the AI the most complete picture of your background, current skills, and aspirations to create a 
+        detailed path toward your dream job.
         """)
         
         # Resume upload for combined approach
@@ -777,21 +804,46 @@ def ai_roadmap_generator_page(pathway=None, pathways_df=None, metrics_data=None)
         # Get questionnaire responses with unique keys
         questionnaire_responses_combined = create_combined_questionnaire()
         
+        # Add dream job integration
+        st.write("#### Dream Job Integration")
+        if dream_job:
+            st.success(f"Using your dream job: {dream_job}")
+        else:
+            st.warning("You haven't specified a dream job. Enter your career aspiration in Step 1 for a more tailored plan.")
+        
+        # Additional specific skills for dream job
+        dream_job_skills = ""
+        if dream_job:
+            st.write(f"What specific skills do you think are most important for your dream job as {dream_job}?")
+            dream_job_skills = st.text_area(
+                "Dream job skills", 
+                placeholder="e.g., leadership, strategic thinking, financial analysis",
+                key="dream_job_skills"
+            )
+        
         if resume_content is not None:
-            generate_button3 = st.button("Generate Comprehensive Roadmap", key="btn_combined")
+            generate_button3 = st.button("Generate Complete Career Plan", key="btn_combined")
             
             if generate_button3:
-                with st.spinner("Analyzing all your information and generating your comprehensive personalized roadmap..."):
+                with st.spinner("Creating your comprehensive roadmap from current skills to dream job..."):
                     # Process both resume and questionnaire
                     resume_analysis = process_resume(resume_content)
                     user_analysis = process_questionnaire(questionnaire_responses_combined)
+                    
+                    # Add dream job information
+                    target_skills = []
+                    if dream_job_skills:
+                        target_skills = [skill.strip() for skill in dream_job_skills.split(',')]
                     
                     # Generate the roadmap with combined data
                     roadmap = generate_ai_roadmap(pathway, {
                         "resume_analysis": resume_analysis,
                         "questionnaire_analysis": user_analysis,
                         "questionnaire_responses": questionnaire_responses_combined,
-                        "resume_content": resume_content[:5000]  # Limit to first 5000 chars for API
+                        "resume_content": resume_content[:5000],  # Limit to first 5000 chars for API
+                        "dream_job": dream_job,
+                        "target_skills": target_skills,
+                        "career_goal": f"Transition to {dream_job}" if dream_job else questionnaire_responses_combined.get("career_goals", "Career advancement")
                     }, metrics_data)
                     
                     # Display the roadmap
