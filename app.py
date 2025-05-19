@@ -454,8 +454,15 @@ tab_names = [
 if 'active_tab' not in st.session_state:
     st.session_state.active_tab = 0
 
-# Create the tabs at the top of the page - there are 9 tabs total
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs(tab_names)
+# Reorder the tabs as requested
+tab_names_reordered = [
+    "Welcome", "AI Roadmap", "Skill Graph", "Skills Analysis", 
+    "Job & Resume Analysis", "Project Portfolio", "2x2 Matrix", 
+    "Find Your Pathway", "About"
+]
+
+# Create the tabs at the top of the page with the new order
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs(tab_names_reordered)
 
 # Welcome tab content
 with tab1:
@@ -794,16 +801,68 @@ with tab3:
                     
                 st.write("---")
 
-# Basic Roadmap tab
-with tab4:
-        # Check if we're coming from a pathway detail view with a pre-selected pathway
-        pre_selected_pathway = None
-        if 'generate_roadmap_for' in st.session_state:
-            pre_selected_pathway = st.session_state.generate_roadmap_for
-            # Clear the session state so it doesn't persist
-            del st.session_state.generate_roadmap_for
+# Project Portfolio tab (replacing Basic Roadmap)
+with tab6:
+        st.title("Project Portfolio")
+        st.write("""
+        Document your projects and skills to build a comprehensive portfolio that demonstrates your abilities.
+        This helps potential employers see concrete evidence of your capabilities.
+        """)
         
-        roadmap_generator_page(pre_selected_pathway, pathways_data, metrics_data)
+        # Upload project documentation
+        st.header("Add Project to Portfolio")
+        
+        # Project details
+        project_name = st.text_input("Project Name", placeholder="e.g., E-commerce Website Redesign")
+        project_description = st.text_area("Project Description", placeholder="Describe the project, your role, and the impact it had")
+        
+        # Project document upload
+        st.write("Upload documentation or examples of your project (optional)")
+        project_doc = st.file_uploader("Upload project document or image", type=["pdf", "docx", "txt", "jpg", "png"])
+        
+        # Skills utilized
+        st.subheader("Skills Demonstrated")
+        st.write("Select the skills you practiced or demonstrated in this project")
+        
+        # Get skills from database
+        job_skills = []
+        try:
+            from database import fetch_job_skills
+            job_skills = fetch_job_skills(top_n=30)  # Get top 30 skills
+            skill_names = [skill["name"] for skill in job_skills]
+        except Exception as e:
+            st.error(f"Could not fetch skills from database: {e}")
+            skill_names = ["Project Management", "Data Analysis", "Web Development", "Content Creation", 
+                          "UX Design", "Marketing", "Leadership", "Python", "JavaScript"]
+        
+        # Multi-select skills with rating
+        selected_skills = st.multiselect("Skills used in this project", skill_names)
+        
+        skill_ratings = {}
+        if selected_skills:
+            st.write("Rate your proficiency with each skill used in this project:")
+            for skill in selected_skills:
+                skill_ratings[skill] = st.slider(f"{skill} proficiency", 1, 5, 3, key=f"skill_{skill}")
+        
+        # Add project button
+        if st.button("Add Project to Portfolio"):
+            if project_name and project_description:
+                try:
+                    # Save project data (simplified version for demo)
+                    st.success(f"Project '{project_name}' added to your portfolio!")
+                    st.write("In a production version, this would be saved to your user profile in the database.")
+                    
+                    if project_doc:
+                        st.write(f"Document '{project_doc.name}' attached to your project.")
+                    
+                    if selected_skills:
+                        st.write("Skills demonstrated:")
+                        for skill in selected_skills:
+                            st.write(f"- {skill}: Proficiency level {skill_ratings.get(skill, 3)}/5")
+                except Exception as e:
+                    st.error(f"Error saving project: {e}")
+            else:
+                st.warning("Please provide at least a project name and description.")
 
 # AI Roadmap tab
 with tab5:
@@ -816,12 +875,153 @@ with tab5:
             
         ai_roadmap_generator_page(pre_selected_pathway, pathways_data, metrics_data)
 
-# Job Posting tab
-with tab6:
-        job_posting_page(pathways_data, metrics_data)
+# Job & Resume Analysis tab (merged Job Posting and Skills)
+with tab5:
+        st.title("Job & Resume Analysis")
+        st.write("""
+        Upload your resume and job descriptions to analyze the alignment between your skills and job requirements.
+        This analysis helps identify which skills are worth learning first and provides valuable context for personalized career guidance.
+        """)
+        
+        # Create columns for side-by-side layout
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.header("Job Posting Analysis")
+            st.write("Upload a job description to analyze its requirements")
+            
+            # Job posting analysis (from job_posting_page)
+            job_posting_page(pathways_data, metrics_data, is_merged_view=True)
+        
+        with col2:
+            st.header("Resume Analysis")
+            st.write("Upload your resume to extract and analyze your skills")
+            
+            # Resume upload
+            resume_file = st.file_uploader("Upload your resume (PDF, DOCX, or TXT)", 
+                                          type=["pdf", "docx", "txt"],
+                                          key="resume_upload_combined")
+            
+            if resume_file:
+                # Process resume
+                file_content = resume_file.read()
+                
+                # Extract text based on file type
+                resume_text = ""
+                try:
+                    if resume_file.type == "application/pdf":
+                        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
+                            temp_file.write(file_content)
+                            temp_file_path = temp_file.name
+                        
+                        # Extract text from PDF
+                        import PyPDF2
+                        with open(temp_file_path, 'rb') as pdf_file:
+                            pdf_reader = PyPDF2.PdfReader(pdf_file)
+                            for page in pdf_reader.pages:
+                                resume_text += page.extract_text()
+                        
+                        # Clean up
+                        os.remove(temp_file_path)
+                    
+                    elif resume_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+                        with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as temp_file:
+                            temp_file.write(file_content)
+                            temp_file_path = temp_file.name
+                        
+                        # Extract text from DOCX
+                        import docx
+                        doc = docx.Document(temp_file_path)
+                        resume_text = "\n".join([para.text for para in doc.paragraphs])
+                        
+                        # Clean up
+                        os.remove(temp_file_path)
+                    
+                    else:  # Text file
+                        resume_text = file_content.decode('utf-8')
+                    
+                    # Display resume text preview
+                    st.write("### Resume Preview")
+                    preview = resume_text[:500] + "..." if len(resume_text) > 500 else resume_text
+                    st.text_area("First 500 characters:", preview, height=150)
+                    
+                    # Process resume with AI
+                    if st.button("Analyze Resume"):
+                        with st.spinner("Analyzing your resume..."):
+                            from skill_graph import analyze_resume_skills
+                            
+                            # Extract skills from resume
+                            try:
+                                skills = analyze_resume_skills(resume_text)
+                                
+                                # Display extracted skills
+                                st.write("### Extracted Skills")
+                                
+                                for skill, info in skills.items():
+                                    rating = info.get('rating', 3)
+                                    context = info.get('context', '')
+                                    
+                                    # Create a visual representation of rating
+                                    rating_stars = "★" * rating + "☆" * (5 - rating)
+                                    
+                                    st.write(f"**{skill}** - {rating_stars}")
+                                    if context:
+                                        st.write(f"Context: {context}")
+                                    st.write("---")
+                                
+                                # Provide benefits of combined analysis
+                                if 'job_posting_text' in st.session_state:
+                                    st.success("Job posting and resume both analyzed! The AI can now provide targeted recommendations.")
+                                    
+                                    # Save to session state for the AI chat to access
+                                    st.session_state.user_resume_skills = skills
+                                    
+                                    # Show skill gap if both resume and job posting are available
+                                    st.write("### Skill Gap Analysis")
+                                    st.info("The skill gap analysis would compare your resume skills with the job posting requirements.")
+                                    # In a real implementation, this would calculate the gap between resume skills and job requirements
+                            
+                            except Exception as e:
+                                st.error(f"Error analyzing resume: {e}")
+                                st.info("Using sample skills data for demonstration")
+                                
+                                # Sample skills data as fallback
+                                skills = {
+                                    "Python": {"rating": 4, "context": "5 years experience with data analysis"},
+                                    "Project Management": {"rating": 3, "context": "Led team of 5 developers"},
+                                    "Communication": {"rating": 5, "context": "Customer-facing role"},
+                                }
+                                
+                                for skill, info in skills.items():
+                                    rating = info.get('rating', 3)
+                                    context = info.get('context', '')
+                                    
+                                    # Create a visual representation of rating
+                                    rating_stars = "★" * rating + "☆" * (5 - rating)
+                                    
+                                    st.write(f"**{skill}** - {rating_stars}")
+                                    if context:
+                                        st.write(f"Context: {context}")
+                                    st.write("---")
+                
+                except Exception as e:
+                    st.error(f"Error processing file: {e}")
+            
+            else:
+                st.info("Upload your resume to extract your skills and get personalized analysis")
+        
+        # Benefits of combined analysis
+        st.subheader("Benefits of Combined Analysis")
+        st.write("""
+        By analyzing both your resume and job postings, the AI can:
+        - Identify which skills are worth learning first
+        - Score career opportunities for the 2x2 matrix
+        - Give the chatbot personal context about your background
+        - Create a personalized learning roadmap targeted at your dream job
+        """)
 
-# Skills Analysis tab
-with tab7:
+# Skills Analysis tab (remains at tab4)
+with tab4:
         skills_analysis_page()
 
 # Skill Graph tab
