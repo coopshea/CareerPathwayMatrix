@@ -419,27 +419,59 @@ def ai_roadmap_generator_page(pathway=None, pathways_df=None, metrics_data=None)
         pathways_df (DataFrame): The pathways dataframe
         metrics_data (dict): Information about metrics
     """
-    st.title("AI-Powered Career Roadmap Generator")
+    st.title("Personalized Career Roadmap: Your Path to Success")
     st.write("""
-    This tool uses AI to create a highly personalized career roadmap based on your background, 
-    skills, and preferences. The more information you provide, the more tailored your roadmap will be.
+    Input your resume, background information, and dream job to get a personalized career plan. 
+    Our AI will create a tailored roadmap that bridges your current skills with your career aspirations.
     """)
     
-    # Input section
-    st.write("## Step 1: Select a Career Pathway")
+    # Dream job input section
+    st.write("## Step 1: Define Your Career Aspirations")
     
-    if pathway is None and pathways_df is not None:
-        # Let user select a pathway
-        pathway_options = pathways_df["name"].tolist()
-        selected_pathway_name = st.selectbox("Select a career pathway:", pathway_options)
-        
-        # Get the full pathway data
-        pathway = pathways_df[pathways_df["name"] == selected_pathway_name].iloc[0].to_dict()
-    elif pathway is not None:
-        st.success(f"Using pre-selected pathway: {pathway['name']}")
+    # Initialize dream_job in session state if not present
+    if 'dream_job' not in st.session_state:
+        st.session_state.dream_job = ""
+    
+    # Input for dream job with description
+    st.write("Enter a specific role title or describe your ideal position:")
+    dream_job = st.text_input("Dream Job", 
+                             value=st.session_state.dream_job, 
+                             placeholder="e.g., Senior Product Manager at a tech startup",
+                             key="dream_job_input")
+    
+    # Save dream job to session state for persistence
+    st.session_state.dream_job = dream_job
+    
+    # Alternative: Select from existing pathways
+    st.write("## Step 2: Select a Career Pathway")
+    
+    use_dream_job = False
+    if dream_job:
+        use_dream_job = st.checkbox("Use my dream job description for roadmap generation", value=True)
+    
+    if not use_dream_job:
+        if pathway is None and pathways_df is not None:
+            # Let user select a pathway
+            pathway_options = pathways_df["name"].tolist()
+            selected_pathway_name = st.selectbox("Select a career pathway:", pathway_options)
+            
+            # Get the full pathway data
+            pathway = pathways_df[pathways_df["name"] == selected_pathway_name].iloc[0].to_dict()
+        elif pathway is not None:
+            st.success(f"Using pre-selected pathway: {pathway['name']}")
+        else:
+            st.error("Please select a pathway to generate a roadmap.")
+            return
     else:
-        st.error("Please select a pathway to generate a roadmap.")
-        return
+        # Create a temporary pathway based on the dream job
+        if pathway is None:
+            pathway = {
+                "name": f"Custom: {dream_job}",
+                "description": f"Custom career path based on your dream job: {dream_job}",
+                "category": "Custom",
+                "metrics": {}
+            }
+            st.success(f"Using your dream job: {dream_job}")
     
     # Create tabs for different input methods
     input_tab1, input_tab2, input_tab3 = st.tabs(["Questionnaire", "Upload Resume", "Combined Approach"])
@@ -465,15 +497,26 @@ def ai_roadmap_generator_page(pathway=None, pathways_df=None, metrics_data=None)
                 display_ai_roadmap(roadmap)
     
     with input_tab2:
-        st.write("## Step 2: Upload Your Resume")
+        st.write("## Step 3: Upload Your Resume")
         st.write("""
         Upload your resume to have the AI analyze your background and create a roadmap 
-        tailored to your experience and skills.
+        tailored to your experience and skills. This helps identify the gaps between your current 
+        abilities and your dream job requirements.
         """)
         
         uploaded_file = st.file_uploader("Upload your resume (PDF, DOCX, or TXT)", 
-                                         type=["pdf", "docx", "txt"],
-                                         key="resume_upload")
+                                        type=["pdf", "docx", "txt"],
+                                        key="resume_upload")
+                                        
+        st.markdown("### Professional Background")
+        current_role = st.text_input("Current Role", placeholder="e.g., Software Engineer at IBM")
+        years_experience = st.slider("Years of Professional Experience", 0, 30, 3)
+        
+        # Skills section
+        st.markdown("### Key Skills")
+        st.write("List your top skills (technical and soft skills)")
+        skills_input = st.text_area("Enter your skills, separated by commas", 
+                                   placeholder="e.g., Python, project management, data analysis, leadership")
         
         if uploaded_file is not None:
             # Read the file content
