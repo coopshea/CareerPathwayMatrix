@@ -817,56 +817,55 @@ with tab6:
         job_posting_page(pathways_data, metrics_data)
 
 # Skills Analysis tab
-with current_tab[6]:
+with tab7:
         skills_analysis_page()
 
 # Skill Graph tab
-with tabs[7]:
-    if current_tab == 7:  # Only show content if this is the active tab
-        skill_graph_page()
+with tab8:
+    # Load the skill graph page
+    skill_graph_page()
 
 # About tab
-with tabs[8]:
-    if current_tab == 8:  # Only show content if this is the active tab
-        st.image(DEFAULT_IMAGES["data_viz_concept"], use_container_width=True)
+with tab9:
+    # About page content
+    st.image(DEFAULT_IMAGES["data_viz_concept"], use_container_width=True)
+    
+    st.write("## About CareerPath Navigator")
+    
+    st.write("""CareerPath Navigator is a comprehensive career development platform that leverages AI 
+to transform skill management, career planning, and professional growth through intelligent, 
+data-driven insights.
+
+### Our Mission
+
+To help professionals at any stage understand themselves better, identify fitting career paths, 
+and create actionable plans to bridge the gap between their current skills and future goals.
+
+### Key Features
+
+- **Visual Career Exploration**: Compare career options using an interactive 2x2 matrix
+- **AI-Powered Analysis**: Extract skills from resumes and analyze job postings
+- **Skill Gap Identification**: See which high-demand skills you should develop
+- **Personalized Roadmaps**: Get customized step-by-step guidance
+- **Project Portfolio**: Document your work to demonstrate your skills
+
+### Technologies
+
+Built with Streamlit, PostgreSQL, and OpenAI integration.
+""")
+    
+    # Add database health status indicator
+    with st.expander("System Status", expanded=False):
+        from database import test_connection, check_migration_needed
         
-        st.write("## About CareerPath Navigator")
-        
-        st.write("""
-        CareerPath Navigator is a comprehensive career development platform that leverages AI 
-        to transform skill management, career planning, and professional growth through intelligent, 
-        data-driven insights.
-        
-        ### Our Mission
-        
-        To help professionals at any stage understand themselves better, identify fitting career paths, 
-        and create actionable plans to bridge the gap between their current skills and future goals.
-        
-        ### Key Features
-        
-        - **Visual Career Exploration**: Compare career options using an interactive 2x2 matrix
-        - **AI-Powered Analysis**: Extract skills from resumes and analyze job postings
-        - **Skill Gap Identification**: See which high-demand skills you should develop
-        - **Personalized Roadmaps**: Get customized step-by-step guidance
-        - **Project Portfolio**: Document your work to demonstrate your skills
-        
-        ### Technologies
-        
-        Built with Streamlit, PostgreSQL, and OpenAI integration.
-        """)
-        
-        # Add database health status indicator
-        with st.expander("System Status", expanded=False):
-            from database import test_connection, check_migration_needed
+        connection_ok = test_connection()
+        if connection_ok:
+            st.success("✅ Database connection is working properly.")
+        else:
+            st.error("❌ Database connection failed. Using file-based data instead.")
             
-            connection_ok = test_connection()
-            if connection_ok:
-                st.success("✅ Database connection is working properly.")
-            else:
-                st.error("❌ Database connection failed. Using file-based data instead.")
-            
-            migration_needed = check_migration_needed()
-            if migration_needed:
-                st.info("Database schema will be automatically updated on next startup.")
-            else:
-                st.success("✅ Database schema is up to date.")
+        migration_needed = check_migration_needed()
+        if migration_needed:
+            st.info("Database schema will be automatically updated on next startup.")
+        else:
+            st.success("✅ Database schema is up to date.")
