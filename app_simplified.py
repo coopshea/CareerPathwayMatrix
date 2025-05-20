@@ -402,65 +402,22 @@ def main():
         render_portfolio_tab()
 
     with tabs[3]:
-        # Premium feature message for 2x2 Matrix
-        st.header("🌟 2×2 Matrix - Premium Feature")
-        st.markdown("""
-        <div style="background-color:#f0f8ff; padding:20px; border-radius:10px; border:1px solid #4682b4;">
-            <h3 style="color:#4682b4;">✨ Unlock Premium Features</h3>
-            <p>The 2×2 Matrix visualization is a premium feature that helps you compare different career paths based on key metrics.</p>
-            <p><strong>Premium features coming soon!</strong></p>
-            <ul>
-                <li>Visual comparison of career options</li>
-                <li>Customizable evaluation metrics</li>
-                <li>Export and share your career matrix</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Show blurred/watermarked preview image
-        st.image("https://images.unsplash.com/photo-1553877522-43269d4ea984?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80", 
-                 caption="Premium feature preview", use_column_width=True)
+        # Simple text premium feature message
+        st.header("2×2 Matrix - Premium Feature")
+        st.write("This premium feature helps you compare different career paths based on key metrics.")
+        st.write("Premium features coming soon!")
 
     with tabs[4]:
-        # Premium feature message for Find Your Pathway
-        st.header("🌟 Find Your Pathway - Premium Feature")
-        st.markdown("""
-        <div style="background-color:#f0f8ff; padding:20px; border-radius:10px; border:1px solid #4682b4;">
-            <h3 style="color:#4682b4;">✨ Unlock Premium Features</h3>
-            <p>The Find Your Pathway feature is a premium tool that matches your preferences and skills with optimal career paths.</p>
-            <p><strong>Premium features coming soon!</strong></p>
-            <ul>
-                <li>Personalized career matching algorithm</li>
-                <li>Detailed pathway comparisons</li>
-                <li>Industry expert insights</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Show blurred/watermarked preview image
-        st.image("https://images.unsplash.com/photo-1516321497487-e288fb19713f?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80", 
-                 caption="Premium feature preview", use_column_width=True)
+        # Simple text premium feature message
+        st.header("Find Your Pathway - Premium Feature")
+        st.write("This premium feature matches your preferences and skills with optimal career paths.")
+        st.write("Premium features coming soon!")
         
     with tabs[5]:
-        # Premium feature message for AI Roadmap
-        st.header("🌟 AI Roadmap - Premium Feature")
-        st.markdown("""
-        <div style="background-color:#f0f8ff; padding:20px; border-radius:10px; border:1px solid #4682b4;">
-            <h3 style="color:#4682b4;">✨ Unlock Premium Features</h3>
-            <p>The AI Roadmap is an advanced premium feature that generates personalized career development plans.</p>
-            <p><strong>Premium features coming soon!</strong></p>
-            <ul>
-                <li>AI-powered personalized guidance</li>
-                <li>Step-by-step career development plans</li>
-                <li>Timeline estimates and milestone tracking</li>
-                <li>Resource recommendations (courses, books, mentors)</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Show blurred/watermarked preview image
-        st.image("https://images.unsplash.com/photo-1521791055366-0d553872125f?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80", 
-                 caption="Premium feature preview", use_column_width=True)
+        # Simple text premium feature message
+        st.header("AI Roadmap - Premium Feature")
+        st.write("This premium feature generates personalized career development plans and guidance.")
+        st.write("Premium features coming soon!")
 
     with tabs[6]:
         st.header("ℹ️ About")

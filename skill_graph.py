@@ -652,8 +652,6 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
     if "skills_updated" not in st.session_state:
         st.session_state.skills_updated = False
     
-    st.title("🧩 Skills Analysis & Career Planning")
-    
     # Create tabs for different skill analysis views
     skills_tab, graph_tab, roadmap_tab = st.tabs(["Skills Profile", "Skill Graph", "Skill Roadmap"])
     
