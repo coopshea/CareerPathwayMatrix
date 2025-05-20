@@ -693,6 +693,13 @@ def render_skill_graph_tab():
     skill_graph_page()
 
 def main():
+    # Initialize user data if not already in session state
+    if "user_data" not in st.session_state:
+        st.session_state.user_data = UserData()
+    
+    # Initialize active tab if not already set
+    if "active_tab" not in st.session_state:
+        st.session_state.active_tab = 0
     
     # Main header
     st.markdown("""
@@ -702,7 +709,8 @@ def main():
         </div>
     """, unsafe_allow_html=True)
     
-    tabs = st.tabs([
+    # Define tab names
+    tab_names = [
         "Welcome",
         "Job & Resume Analysis",
         "AI Roadmap",
@@ -711,37 +719,38 @@ def main():
         "2×2 Matrix",
         "Find Your Pathway",
         "About"
-    ])
-
-    with tabs[0]:
-        render_welcome_tab()
-
-    with tabs[1]:
-        render_job_resume_tab()
-
-    with tabs[2]:
-        render_ai_roadmap_tab()
-
-    with tabs[3]:
-        render_skill_graph_tab()
-
-    with tabs[4]:
-        render_portfolio_tab()
-
-    with tabs[5]:
-        render_2x2_matrix_tab()
-
-    with tabs[6]:
-        render_find_pathway_tab()
-
-    with tabs[7]:
-        st.header("ℹ️ About")
-        st.image(DEFAULT_IMAGES["data_viz_concept"], use_container_width=True)
-        st.write("""
-        CareerPath Navigator is built on Streamlit.  
-        Use the tabs above to interact with every feature.  
-        Your uploads & questionnaire answers persist as you move between pages.
-        """)
+    ]
+    
+    # Create the tabs
+    tabs = st.tabs(tab_names)
+    
+    # Set the active tab index (used by navigation buttons)
+    tab_index = st.session_state.active_tab
+    
+    # Render the appropriate tab content based on active tab index
+    with tabs[tab_index]:
+        if tab_index == 0:
+            render_welcome_tab()
+        elif tab_index == 1:
+            render_job_resume_tab()
+        elif tab_index == 2:
+            render_ai_roadmap_tab()
+        elif tab_index == 3:
+            render_skill_graph_tab()
+        elif tab_index == 4:
+            render_portfolio_tab()
+        elif tab_index == 5:
+            render_2x2_matrix_tab()
+        elif tab_index == 6:
+            render_find_pathway_tab()
+        elif tab_index == 7:
+            st.header("ℹ️ About")
+            st.image(DEFAULT_IMAGES["data_viz_concept"], use_container_width=True)
+            st.write("""
+            CareerPath Navigator is built on Streamlit.  
+            Use the tabs above to interact with every feature.  
+            Your uploads & questionnaire answers persist as you move between pages.
+            """)
 
 if __name__ == "__main__":
     main()
