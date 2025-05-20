@@ -1253,8 +1253,18 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
                                     st.markdown("### Your Personalized Skill Development Plan")
                                     st.markdown(roadmap_content)
                                     
-                                    # Add option to save this roadmap
-                                    save_button = st.button("Save This Learning Plan")
+                                    # Add option to save this roadmap using session state to avoid resetting the page
+                                    col1, col2 = st.columns([3, 1])
+                                    with col2:
+                                        save_key = f"save_plan_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+                                        save_button = st.button("Save This Learning Plan", key=save_key)
+                                    
+                                    # Store the roadmap content in session state for preservation through reruns
+                                    temp_roadmap_key = "temp_roadmap_content"
+                                    if temp_roadmap_key not in st.session_state:
+                                        st.session_state[temp_roadmap_key] = roadmap_content
+                                    
+                                    # Check if the save button was clicked
                                     if save_button:
                                         if "saved_roadmaps" not in st.session_state:
                                             st.session_state.saved_roadmaps = {}
@@ -1264,7 +1274,9 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
                                         if len(target_skills) > 2:
                                             skills_summary += f" +{len(target_skills)-2} more"
                                             
-                                        roadmap_name = f"Skill Plan: {skills_summary}"
+                                        # Create a unique timestamp-based name to avoid conflicts
+                                        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+                                        roadmap_name = f"Skill Plan: {skills_summary} ({timestamp})"
                                             
                                         st.session_state.saved_roadmaps[roadmap_name] = {
                                             "content": roadmap_content,
@@ -1279,19 +1291,37 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
                                 st.error(f"Error generating learning plan: {str(e)}")
                                 st.info("Please check your internet connection or try again later.")
                 
-                # Show saved roadmaps if any
+                # Always display the saved plans section
+                st.subheader("Your Saved Learning Plans")
+                
                 if "saved_roadmaps" in st.session_state and st.session_state.saved_roadmaps:
-                    st.subheader("Your Saved Learning Plans")
+                    # Display all saved plans in reverse chronological order (newest first)
+                    plans = list(st.session_state.saved_roadmaps.items())
+                    # Sort by timestamp in the name (newest first)
+                    plans.sort(key=lambda x: x[0], reverse=True)
                     
-                    for plan_name, plan_data in st.session_state.saved_roadmaps.items():
+                    for plan_name, plan_data in plans:
                         with st.expander(f"{plan_name} (Created: {plan_data['date_created']})"):
                             st.markdown(plan_data["content"])
                             
-                            # Show delete button
-                            if st.button("Delete Plan", key=f"del_roadmap_{plan_name}"):
-                                del st.session_state.saved_roadmaps[plan_name]
-                                st.success(f"Learning plan deleted.")
+                            # Show delete button with unique key
+                            delete_key = f"del_plan_{plan_name}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+                            if st.button("Delete This Plan", key=delete_key):
+                                # Use session state to mark this plan for deletion
+                                if "plans_to_delete" not in st.session_state:
+                                    st.session_state.plans_to_delete = []
+                                st.session_state.plans_to_delete.append(plan_name)
                                 st.rerun()
+                    
+                    # Process any plans marked for deletion
+                    if "plans_to_delete" in st.session_state and st.session_state.plans_to_delete:
+                        for plan_name in st.session_state.plans_to_delete:
+                            if plan_name in st.session_state.saved_roadmaps:
+                                del st.session_state.saved_roadmaps[plan_name]
+                        st.session_state.plans_to_delete = []
+                        st.success("Learning plan deleted successfully!")
+                else:
+                    st.info("You haven't saved any learning plans yet. Generate a plan and save it to see it here.")
     
     # End of render_skill_graph_tab function
 
