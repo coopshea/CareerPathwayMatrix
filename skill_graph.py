@@ -648,6 +648,10 @@ def analyze_project_for_skills(project_description, project_link=""):
 def render_skill_graph_tab(user_data=None, selectbox=None):
     """Render the skill graph tab with the provided user data"""
     
+    # Initialize session state variables if they don't exist
+    if "skills_updated" not in st.session_state:
+        st.session_state.skills_updated = False
+    
     st.title("🧩 Skills Analysis & Career Planning")
     
     # Create tabs for different skill analysis views - removed Job Requirements tab
