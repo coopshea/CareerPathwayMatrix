@@ -548,15 +548,14 @@ tab_names = [
 if 'active_tab' not in st.session_state:
     st.session_state.active_tab = 0
 
-# Reorder the tabs as requested
-tab_names_reordered = [
-    "Welcome", "AI Roadmap", "Skill Graph", "Skills Analysis", 
-    "Job & Resume Analysis", "Project Portfolio", "2x2 Matrix", 
-    "Find Your Pathway", "About"
+# Create a simpler tab set with better flow
+tab_names = [
+    "Welcome", "Job & Resume Analysis", "AI Roadmap", "Skill Graph", 
+    "Project Portfolio", "2x2 Matrix", "Find Your Pathway", "About"
 ]
 
-# Create the tabs at the top of the page with the new order
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs(tab_names_reordered)
+# Create the tabs at the top of the page
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(tab_names)
 
 # Welcome tab content
 with tab1:
@@ -958,8 +957,8 @@ with tab6:
             else:
                 st.warning("Please provide at least a project name and description.")
 
-# AI Roadmap tab
-with tab5:
+# AI Roadmap tab - now tab3
+with tab3:
         # Check if we're coming from a pathway detail view with a pre-selected pathway
         pre_selected_pathway = None
         if 'generate_roadmap_for' in st.session_state:
@@ -969,162 +968,477 @@ with tab5:
             
         ai_roadmap_generator_page(pre_selected_pathway, pathways_data, metrics_data)
 
-# Job & Resume Analysis tab (merged Job Posting and Skills)
-with tab5:
+# Job & Resume Analysis tab - now tab2 (improved organization)
+with tab2:
         st.title("Job & Resume Analysis")
         st.write("""
         Upload your resume and job descriptions to analyze the alignment between your skills and job requirements.
         This analysis helps identify which skills are worth learning first and provides valuable context for personalized career guidance.
         """)
         
-        # Create columns for side-by-side layout
-        col1, col2 = st.columns(2)
+        # Create tabs for file upload and manual entry
+        file_tab, questionnaire_tab = st.tabs(["Upload Documents (Recommended)", "Fill Questionnaire"])
         
-        with col1:
-            st.header("Job Posting Analysis")
-            st.write("Upload a job description to analyze its requirements")
+        with file_tab:
+            # Create columns for side-by-side layout
+            col1, col2 = st.columns(2)
             
-            # Job posting analysis (from job_posting_page)
-            job_posting_page(pathways_data, metrics_data, is_merged_view=True)
-        
-        with col2:
-            st.header("Resume Analysis")
-            st.write("Upload your resume to extract and analyze your skills")
-            
-            # Resume upload
-            resume_file = st.file_uploader("Upload your resume (PDF, DOCX, or TXT)", 
-                                          type=["pdf", "docx", "txt"],
-                                          key="resume_upload_combined")
-            
-            if resume_file:
-                # Process resume
-                file_content = resume_file.read()
+            with col1:
+                st.header("Resume Analysis")
+                st.write("Upload your resume to extract and analyze your skills")
                 
-                # Extract text based on file type
-                resume_text = ""
-                try:
-                    if resume_file.type == "application/pdf":
-                        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
-                            temp_file.write(file_content)
-                            temp_file_path = temp_file.name
-                        
-                        # Extract text from PDF
-                        import PyPDF2
-                        with open(temp_file_path, 'rb') as pdf_file:
-                            pdf_reader = PyPDF2.PdfReader(pdf_file)
-                            for page in pdf_reader.pages:
-                                resume_text += page.extract_text()
-                        
-                        # Clean up
-                        os.remove(temp_file_path)
-                    
-                    elif resume_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-                        with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as temp_file:
-                            temp_file.write(file_content)
-                            temp_file_path = temp_file.name
-                        
-                        # Extract text from DOCX
-                        import docx
-                        doc = docx.Document(temp_file_path)
-                        resume_text = "\n".join([para.text for para in doc.paragraphs])
-                        
-                        # Clean up
-                        os.remove(temp_file_path)
-                    
-                    else:  # Text file
-                        resume_text = file_content.decode('utf-8')
-                    
-                    # Display resume text preview
-                    st.write("### Resume Preview")
-                    preview = resume_text[:500] + "..." if len(resume_text) > 500 else resume_text
-                    st.text_area("First 500 characters:", preview, height=150)
-                    
-                    # Process resume with AI
-                    if st.button("Analyze Resume"):
-                        with st.spinner("Analyzing your resume..."):
-                            from skill_graph import analyze_resume_skills
-                            
-                            # Extract skills from resume
-                            try:
-                                skills = analyze_resume_skills(resume_text)
-                                
-                                # Display extracted skills
-                                st.write("### Extracted Skills")
-                                
-                                for skill, info in skills.items():
-                                    rating = info.get('rating', 3)
-                                    context = info.get('context', '')
-                                    
-                                    # Create a visual representation of rating
-                                    rating_stars = "★" * rating + "☆" * (5 - rating)
-                                    
-                                    st.write(f"**{skill}** - {rating_stars}")
-                                    if context:
-                                        st.write(f"Context: {context}")
-                                    st.write("---")
-                                
-                                # Provide benefits of combined analysis
-                                if 'job_posting_text' in st.session_state:
-                                    st.success("Job posting and resume both analyzed! The AI can now provide targeted recommendations.")
-                                    
-                                    # Save to session state for the AI chat to access
-                                    st.session_state.user_resume_skills = skills
-                                    
-                                    # Show skill gap if both resume and job posting are available
-                                    st.write("### Skill Gap Analysis")
-                                    st.info("The skill gap analysis would compare your resume skills with the job posting requirements.")
-                                    # In a real implementation, this would calculate the gap between resume skills and job requirements
-                            
-                            except Exception as e:
-                                st.error(f"Error analyzing resume: {e}")
-                                st.info("Using sample skills data for demonstration")
-                                
-                                # Sample skills data as fallback
-                                skills = {
-                                    "Python": {"rating": 4, "context": "5 years experience with data analysis"},
-                                    "Project Management": {"rating": 3, "context": "Led team of 5 developers"},
-                                    "Communication": {"rating": 5, "context": "Customer-facing role"},
-                                }
-                                
-                                for skill, info in skills.items():
-                                    rating = info.get('rating', 3)
-                                    context = info.get('context', '')
-                                    
-                                    # Create a visual representation of rating
-                                    rating_stars = "★" * rating + "☆" * (5 - rating)
-                                    
-                                    st.write(f"**{skill}** - {rating_stars}")
-                                    if context:
-                                        st.write(f"Context: {context}")
-                                    st.write("---")
+                # Resume upload
+                resume_file = st.file_uploader("Upload your resume (PDF, DOCX, or TXT)", 
+                                              type=["pdf", "docx", "txt"],
+                                              key="resume_upload_combined")
                 
-                except Exception as e:
-                    st.error(f"Error processing file: {e}")
+                if resume_file:
+                    # Process resume
+                    file_content = resume_file.read()
+                    
+                    # Extract text based on file type
+                    resume_text = ""
+                    try:
+                        if resume_file.type == "application/pdf":
+                            with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
+                                temp_file.write(file_content)
+                                temp_file_path = temp_file.name
+                            
+                            # Extract text from PDF
+                            import PyPDF2
+                            with open(temp_file_path, 'rb') as pdf_file:
+                                pdf_reader = PyPDF2.PdfReader(pdf_file)
+                                for page in pdf_reader.pages:
+                                    resume_text += page.extract_text()
+                            
+                            # Clean up
+                            os.remove(temp_file_path)
+                        
+                        elif resume_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+                            with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as temp_file:
+                                temp_file.write(file_content)
+                                temp_file_path = temp_file.name
+                            
+                            # Extract text from DOCX
+                            import docx
+                            doc = docx.Document(temp_file_path)
+                            resume_text = "\n".join([para.text for para in doc.paragraphs])
+                            
+                            # Clean up
+                            os.remove(temp_file_path)
+                        
+                        else:  # Text file
+                            resume_text = file_content.decode('utf-8')
+                        
+                        # Display resume text preview
+                        st.write("### Resume Preview")
+                        preview = resume_text[:300] + "..." if len(resume_text) > 300 else resume_text
+                        st.text_area("Preview:", preview, height=100)
+                        
+                        # Process resume with AI button
+                        process_resume_btn = st.button("Analyze Resume")
+                    
+                    except Exception as e:
+                        st.error(f"Error processing file: {e}")
+                
+                else:
+                    st.info("Upload your resume to extract and analyze your skills")
+                    process_resume_btn = False
             
-            else:
-                st.info("Upload your resume to extract your skills and get personalized analysis")
+            with col2:
+                st.header("Job Posting Analysis")
+                st.write("Upload a job description to analyze its requirements")
+                
+                # Job posting analysis (using file upload as primary method)
+                uploaded_file = st.file_uploader("Upload a job posting document", 
+                                              type=["pdf", "docx", "txt"],
+                                              key="job_file_merged")
+                
+                job_text = None
+                
+                if uploaded_file:
+                    # Process the file based on type
+                    try:
+                        if uploaded_file.type == "application/pdf":
+                            import PyPDF2
+                            # Save the uploaded file temporarily
+                            with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
+                                temp_file.write(uploaded_file.read())
+                                temp_file_path = temp_file.name
+                            
+                            # Extract text from the PDF
+                            with open(temp_file_path, 'rb') as file:
+                                pdf_reader = PyPDF2.PdfReader(file)
+                                job_text = ""
+                                for page_num in range(len(pdf_reader.pages)):
+                                    job_text += pdf_reader.pages[page_num].extract_text()
+                            
+                            # Clean up the temporary file
+                            os.remove(temp_file_path)
+                            
+                        elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+                            import docx
+                            # Save the uploaded file temporarily
+                            with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as temp_file:
+                                temp_file.write(uploaded_file.read())
+                                temp_file_path = temp_file.name
+                            
+                            # Extract text from the DOCX
+                            doc = docx.Document(temp_file_path)
+                            job_text = "\n".join([para.text for para in doc.paragraphs])
+                            
+                            # Clean up the temporary file
+                            os.remove(temp_file_path)
+                            
+                        else:  # Text file
+                            job_text = uploaded_file.read().decode('utf-8')
+                        
+                        # Display job posting preview
+                        st.write("### Job Posting Preview")
+                        preview = job_text[:300] + "..." if len(job_text) > 300 else job_text
+                        st.text_area("Preview:", preview, height=100)
+                        
+                        # Save to session state
+                        st.session_state.job_posting_text = job_text
+                        
+                        # Process job posting button
+                        process_job_btn = st.button("Analyze Job Posting")
+                    
+                    except Exception as e:
+                        st.error(f"Error processing file: {e}")
+                        process_job_btn = False
+                
+                else:
+                    st.info("Upload a job description to analyze requirements")
+                    st.write("Or paste text instead:")
+                    job_text = st.text_area("Paste job posting text", height=100, key="job_text_merged")
+                    process_job_btn = st.button("Analyze Job Text") if job_text else False
+                    if job_text:
+                        st.session_state.job_posting_text = job_text
+            
+            # Process the files if buttons were clicked
+            if 'resume_text' in locals() and process_resume_btn:
+                with st.spinner("Analyzing your resume..."):
+                    from skill_graph import analyze_resume_skills
+                    
+                    # Extract skills from resume
+                    try:
+                        skills = analyze_resume_skills(resume_text)
+                        
+                        # Display extracted skills
+                        st.write("### Extracted Skills")
+                        skill_col1, skill_col2 = st.columns(2)
+                        
+                        for i, (skill, info) in enumerate(list(skills.items())[:6]):
+                            rating = info.get('rating', 3)
+                            context = info.get('context', '')
+                            
+                            # Create a visual representation of rating
+                            rating_stars = "★" * rating + "☆" * (5 - rating)
+                            
+                            with skill_col1 if i % 2 == 0 else skill_col2:
+                                st.write(f"**{skill}** - {rating_stars}")
+                                if context:
+                                    st.write(f"*{context}*")
+                                st.write("---")
+                        
+                        # Save to session state for the AI chat to access
+                        st.session_state.user_resume_skills = skills
+                        
+                    except Exception as e:
+                        st.error(f"Error analyzing resume: {e}")
+                        # Sample skills data
+                        skills = {
+                            "Python": {"rating": 4, "context": "5 years experience with data analysis"},
+                            "Project Management": {"rating": 3, "context": "Led team of 5 developers"},
+                            "Communication": {"rating": 5, "context": "Customer-facing role"},
+                        }
+                        st.write("### Sample Skills (Demo)")
+                        for skill, info in skills.items():
+                            rating = info.get('rating', 3)
+                            context = info.get('context', '')
+                            rating_stars = "★" * rating + "☆" * (5 - rating)
+                            st.write(f"**{skill}** - {rating_stars}")
+                            if context:
+                                st.write(f"*{context}*")
+                            st.write("---")
+            
+            if job_text and process_job_btn:
+                with st.spinner("Analyzing job posting..."):
+                    try:
+                        # Import necessary function
+                        from job_postings_merged import analyze_job_posting
+                        
+                        # Call the function to analyze the job posting
+                        analysis = analyze_job_posting(job_text)
+                        
+                        # Display summary
+                        st.write("### Job Analysis Summary")
+                        job_col1, job_col2 = st.columns(2)
+                        
+                        with job_col1:
+                            st.write(f"**Job Title:** {analysis.get('title', 'Unknown')}")
+                            st.write(f"**Company:** {analysis.get('company', 'Unknown')}")
+                            st.write(f"**Category:** {analysis.get('category', 'Unknown')}")
+                            
+                            st.write("**Required Skills:**")
+                            for skill in analysis.get('required_skills', [])[:5]:  # Limit to top 5
+                                st.write(f"- {skill}")
+                            if len(analysis.get('required_skills', [])) > 5:
+                                st.write(f"- *and {len(analysis.get('required_skills', [])) - 5} more*")
+                        
+                        with job_col2:
+                            st.write(f"**Level:** {analysis.get('seniority', 'Not specified')}")
+                            st.write(f"**Location:** {analysis.get('location', 'Not specified')}")
+                            
+                            if analysis.get('preferred_skills'):
+                                st.write("**Preferred Skills:**")
+                                for skill in analysis.get('preferred_skills', [])[:5]:  # Limit to top 5
+                                    st.write(f"- {skill}")
+                                if len(analysis.get('preferred_skills', [])) > 5:
+                                    st.write(f"- *and {len(analysis.get('preferred_skills', [])) - 5} more*")
+                        
+                        # Store in session state for resume skill comparison
+                        st.session_state.job_skills = {
+                            'required': analysis.get('required_skills', []),
+                            'preferred': analysis.get('preferred_skills', [])
+                        }
+                        
+                        # Save the analysis to session state
+                        st.session_state.job_analysis = analysis
+                        
+                    except Exception as e:
+                        st.error(f"Error analyzing job posting: {e}")
+            
+            # Display combined analysis if both resume and job are analyzed
+            if 'user_resume_skills' in st.session_state and 'job_skills' in st.session_state:
+                st.success("✅ Both resume and job posting analyzed! View the skill gap analysis below.")
+                
+                st.write("## Skill Gap Analysis")
+                
+                # Get required skills from job
+                required_skills = set(st.session_state.job_skills.get('required', []))
+                preferred_skills = set(st.session_state.job_skills.get('preferred', []))
+                
+                # Get user's skills
+                user_skills = set(st.session_state.user_resume_skills.keys())
+                
+                # Calculate matches and gaps
+                required_matches = required_skills.intersection(user_skills)
+                required_gaps = required_skills.difference(user_skills)
+                preferred_matches = preferred_skills.intersection(user_skills)
+                preferred_gaps = preferred_skills.difference(user_skills)
+                
+                # Calculate match percentage for required skills
+                if required_skills:
+                    match_percentage = len(required_matches) / len(required_skills) * 100
+                else:
+                    match_percentage = 0
+                
+                # Display match percentage
+                st.markdown(f"### Overall Match: {match_percentage:.1f}%")
+                
+                # Display skills columns
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.write("#### 🎯 Skills You Already Have")
+                    if required_matches:
+                        st.write("**Required skills you have:**")
+                        for skill in required_matches:
+                            st.write(f"✓ {skill}")
+                    
+                    if preferred_matches:
+                        st.write("**Preferred skills you have:**")
+                        for skill in preferred_matches:
+                            st.write(f"✓ {skill}")
+                    
+                    if not required_matches and not preferred_matches:
+                        st.info("No direct skill matches found. Consider developing the skills listed on the right.")
+                
+                with col2:
+                    st.write("#### 📝 Skills to Develop")
+                    if required_gaps:
+                        st.write("**Required skills to learn:**")
+                        for skill in required_gaps:
+                            st.write(f"→ {skill}")
+                    
+                    if preferred_gaps:
+                        st.write("**Preferred skills to consider:**")
+                        for skill in preferred_gaps:
+                            st.write(f"→ {skill}")
+                    
+                    if not required_gaps and not preferred_gaps:
+                        st.success("Congratulations! You have all the skills listed in the job posting.")
+                
+                # Next steps based on analysis
+                st.write("### Recommended Next Steps")
+                st.info("""
+                1. Focus on developing the required skills you're missing
+                2. Generate an AI roadmap for this career path
+                3. Add the skills you already have to your portfolio with evidence
+                """)
+                
+                if st.button("Generate AI Roadmap for This Job"):
+                    # Set the dream job based on the analyzed job posting
+                    job_title = st.session_state.job_analysis.get('title', 'Unknown Position')
+                    st.session_state.dream_job = job_title
+                    # Go to AI Roadmap tab
+                    st.session_state.active_tab = 2  # Index of AI Roadmap tab
+                    st.rerun()
         
-        # Benefits of combined analysis
-        st.subheader("Benefits of Combined Analysis")
+        with questionnaire_tab:
+            st.header("Career Preferences Questionnaire")
+            st.write("If you don't have a resume or job posting, fill out this questionnaire to get career recommendations.")
+            
+            # Dream job input
+            st.write("#### Your Career Aspirations")
+            dream_job = st.text_input("What's your dream job or role?", key="dream_job_questionnaire")
+            
+            # Current skills
+            st.write("#### Your Current Skills")
+            current_skills = st.text_area("List your key skills (comma separated)", placeholder="e.g., Python, Project Management, Data Analysis", key="skills_questionnaire")
+            
+            # Work preferences
+            st.write("#### Work Preferences")
+            work_pref_options = ["Remote work", "Flexible hours", "Creative freedom", "Structured environment", 
+                                "Team collaboration", "Independent work", "Fast-paced", "Work-life balance"]
+            work_preferences = st.multiselect("Select your work preferences", work_pref_options, key="work_pref_questionnaire")
+            
+            # Industry interests
+            st.write("#### Industry Interests")
+            industry_options = ["Technology", "Healthcare", "Finance", "Education", "Entertainment", 
+                               "Manufacturing", "Retail", "Government", "Non-profit"]
+            industries = st.multiselect("Select industries you're interested in", industry_options, key="industries_questionnaire")
+            
+            # Save and analyze button
+            if st.button("Save and Analyze Preferences"):
+                st.session_state.questionnaire_responses = {
+                    "dream_job": dream_job,
+                    "current_skills": [skill.strip() for skill in current_skills.split(",") if skill.strip()],
+                    "work_preferences": work_preferences,
+                    "industries": industries
+                }
+                
+                st.success("Preferences saved! Now you can explore career pathways based on your inputs.")
+                
+                # Go to Find Your Pathway tab
+                if st.button("View Recommended Pathways"):
+                    st.session_state.active_tab = 6  # Index of Find Your Pathway tab
+                    st.rerun()
+        
+        # Benefits of analysis at the bottom
+        st.subheader("Benefits of Analysis")
         st.write("""
-        By analyzing both your resume and job postings, the AI can:
+        By analyzing your background and job requirements, the CareerPath Navigator can:
         - Identify which skills are worth learning first
         - Score career opportunities for the 2x2 matrix
-        - Give the chatbot personal context about your background
+        - Give the AI chatbot personal context about your background
         - Create a personalized learning roadmap targeted at your dream job
         """)
 
-# Skills Analysis tab (remains at tab4)
+# Skill Graph tab - now tab4
 with tab4:
-        skills_analysis_page()
-
-# Skill Graph tab
-with tab8:
     # Load the skill graph page
     skill_graph_page()
 
-# About tab
-with tab9:
+# 2x2 Matrix tab - now tab6 
+with tab6:
+    st.title("Career Pathways Matrix")
+    st.write("""
+    This 2x2 matrix visualizes different career pathways based on two important metrics:
+    skill alignment (how well your skills match the requirements) and growth potential.
+    """)
+    
+    # Get metrics for the matrix axes
+    x_metric = "skill_match"
+    y_metric = "growth_potential"
+    
+    # Create the visualization
+    create_matrix_visualization(pathways_data, x_metric, y_metric, metrics_data)
+
+# Find Your Pathway tab - now tab7
+with tab7:
+    st.title("Find Your Pathway")
+    st.write("""
+    Complete the questionnaire below to discover career pathways that align with your preferences.
+    """)
+    
+    # Create the questionnaire
+    st.header("Career Preferences Questionnaire")
+    
+    metrics = metrics_data.keys()
+    user_preferences = {}
+    importance_weights = {}
+    
+    for metric_id in metrics:
+        metric_info = metrics_data[metric_id]
+        
+        st.write(f"### {metric_info['name']}")
+        st.write(metric_info['description'])
+        
+        # Ask for preference within a range
+        preference_range = st.slider(
+            f"Where do you prefer to be on the {metric_info['name']} scale?",
+            0, 100, (30, 70),
+            key=f"pref_{metric_id}"
+        )
+        
+        # Ask for importance
+        importance = st.slider(
+            f"How important is {metric_info['name']} to you?",
+            0, 10, 5,
+            key=f"imp_{metric_id}"
+        )
+        
+        user_preferences[metric_id] = preference_range
+        importance_weights[metric_id] = importance
+    
+    # Button to calculate matches
+    if st.button("Find Matching Pathways"):
+        # Calculate matches
+        matches = calculate_pathway_matches(pathways_data, user_preferences, importance_weights)
+        
+        # Display matches
+        st.write("## Your Top Pathway Matches")
+        
+        # Display top 3 matches
+        for i, (pathway_id, score, explanation) in enumerate(matches[:3]):
+            pathway = get_pathway_details(pathways_data, pathway_id)
+            
+            st.write(f"### {i+1}. {pathway['name']} ({score:.1f}% match)")
+            st.write(pathway['description'])
+            
+            with st.expander("Why this pathway matches your preferences"):
+                st.write(explanation)
+            
+            # Button to view detailed pathway
+            if st.button(f"View Detailed Pathway", key=f"view_{i}"):
+                st.session_state.selected_pathway_id = pathway_id
+                st.session_state.active_tab = 6  # Now the 2x2 Matrix tab
+                st.rerun()
+            
+            st.write("---")
+        
+        # Display remaining matches in a table
+        if len(matches) > 3:
+            st.write("### Other Potential Matches")
+            
+            # Prepare data for the table
+            matches_data = []
+            for pathway_id, score, _ in matches[3:10]:  # Show up to 10 total
+                pathway = get_pathway_details(pathways_data, pathway_id)
+                matches_data.append({
+                    "Pathway": pathway['name'],
+                    "Match Score": f"{score:.1f}%",
+                    "Category": pathway['category']
+                })
+            
+            # Display as a table
+            st.table(pd.DataFrame(matches_data))
+
+# About tab - now tab8
+with tab8:
     # About page content
     st.image(DEFAULT_IMAGES["data_viz_concept"], use_container_width=True)
     
