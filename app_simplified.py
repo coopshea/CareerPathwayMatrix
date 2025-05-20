@@ -63,7 +63,7 @@ def render_welcome_tab():
     st.markdown("---")
     st.markdown("### Not sure where to start? Ask our AI Career Assistant")
     
-    # Add data reset functionality
+    # Add data reset functionality - Just the button with simpler implementation
     st.markdown("---")
     st.subheader("Reset Your Data")
     st.write("If you want to start fresh or remove your personal data, you can reset the application data here.")
@@ -73,23 +73,11 @@ def render_welcome_tab():
         st.warning("This will clear all your skills, uploaded files, and saved learning plans. This cannot be undone.")
     with reset_col2:
         if st.button("Reset All Data"):
-            # Remove all session state data except for necessary app state
-            keys_to_preserve = ['data_loaded', '_is_running', '_current_tab']
+            # Just clear session state completely and reinitialize
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
             
-            # Get all current keys
-            all_keys = list(st.session_state.keys())
-            
-            # Clear all user data
-            for key in all_keys:
-                if key not in keys_to_preserve:
-                    try:
-                        del st.session_state[key]
-                    except:
-                        pass
-            
-            # Reinitialize the user_data object
-            st.session_state.user_data = UserData()
-            
+            # Refresh the page
             st.success("All data has been reset! The page will refresh momentarily.")
             st.rerun()
     
@@ -411,11 +399,11 @@ def main():
         "Welcome",
         "Skill Graph",
         "Project Portfolio", 
-        "Job Tracker",
         "2×2 Matrix",
         "Find Your Pathway",
         "AI Roadmap",
         "Interview Coach",
+        "Job Tracker",
         "About"
     ])
 
@@ -429,27 +417,11 @@ def main():
         render_portfolio_tab()
 
     with tabs[3]:
-        # Job Tracker tab as Premium Feature
-        st.header("Job Tracker - Premium Feature")
-        st.write("Track your job applications, interviews, and follow-ups in one place.")
-        
-        # Display description of future functionality
-        st.info("""
-        **Coming Soon with Premium Features:** 
-        - Automated job application tracking through Gmail integration
-        - Chrome extension for one-click job application capture
-        - Status tracking and reminders for follow-ups
-        - Interview preparation linked to specific applications
-        """)
-        
-        st.write("Premium features coming soon!")
-    
-    with tabs[4]:
         # Simple text premium feature message
         st.header("2×2 Matrix - Premium Feature")
         st.write("This premium feature helps you compare different career paths based on key metrics.")
         st.write("Premium features coming soon!")
-
+    
     with tabs[4]:
         # Simple text premium feature message
         st.header("Find Your Pathway - Premium Feature")
@@ -469,6 +441,22 @@ def main():
         st.write("Premium features coming soon!")
         
     with tabs[7]:
+        # Job Tracker tab as Premium Feature
+        st.header("Job Tracker - Premium Feature")
+        st.write("Track your job applications, interviews, and follow-ups in one place.")
+        
+        # Display description of future functionality
+        st.info("""
+        **Coming Soon with Premium Features:** 
+        - Automated job application tracking through Gmail integration
+        - Chrome extension for one-click job application capture
+        - Status tracking and reminders for follow-ups
+        - Interview preparation linked to specific applications
+        """)
+        
+        st.write("Premium features coming soon!")
+        
+    with tabs[8]:
         st.header("ℹ️ About")
         st.markdown("""
         ### About CareerPath Navigator
@@ -496,23 +484,11 @@ def main():
             st.warning("This will clear all your skills, uploaded files, and saved learning plans. This cannot be undone.")
         with reset_col2:
             if st.button("Reset All Data", key="reset_data_about"):
-                # Remove all session state data except for necessary app state
-                keys_to_preserve = ['data_loaded', '_is_running', '_current_tab']
+                # Just clear session state completely
+                for key in list(st.session_state.keys()):
+                    del st.session_state[key]
                 
-                # Get all current keys
-                all_keys = list(st.session_state.keys())
-                
-                # Clear all user data
-                for key in all_keys:
-                    if key not in keys_to_preserve:
-                        try:
-                            del st.session_state[key]
-                        except:
-                            pass
-                
-                # Reinitialize the user_data object
-                st.session_state.user_data = UserData()
-                
+                # Refresh the page
                 st.success("All data has been reset! The page will refresh momentarily.")
                 st.rerun()
 
