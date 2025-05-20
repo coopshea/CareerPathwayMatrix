@@ -20,4 +20,6 @@ dependencies = [
     "streamlit-chat>=0.1.1",
     "streamlit>=1.45.0",
     "trafilatura>=2.0.0",
+    "beautifulsoup4>=4.13.4",
+    "requests>=2.32.3",
 ]
