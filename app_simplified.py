@@ -384,11 +384,11 @@ def main():
     
     tabs = st.tabs([
         "Welcome",
-        "Skill Graph",
-        "AI Roadmap",
         "Project Portfolio",
+        "Skill Graph", 
         "2×2 Matrix",
         "Find Your Pathway",
+        "AI Roadmap",
         "About"
     ])
 
@@ -396,19 +396,19 @@ def main():
         render_welcome_tab()
 
     with tabs[1]:
-        render_skill_graph_tab()
-
-    with tabs[2]:
-        render_ai_roadmap_tab()
-
-    with tabs[3]:
         render_portfolio_tab()
 
-    with tabs[4]:
+    with tabs[2]:
+        render_skill_graph_tab()
+
+    with tabs[3]:
         render_2x2_matrix_tab()
 
-    with tabs[5]:
+    with tabs[4]:
         render_find_pathway_tab()
+        
+    with tabs[5]:
+        render_ai_roadmap_tab()
 
     with tabs[6]:
         st.header("ℹ️ About")
