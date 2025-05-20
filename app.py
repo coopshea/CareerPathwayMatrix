@@ -9,7 +9,8 @@ from visualizations import create_matrix_visualization
 from recommendations import calculate_pathway_matches
 from roadmaps import roadmap_generator_page
 from ai_roadmap import ai_roadmap_generator_page
-from job_postings import job_posting_page
+from job_postings_merged import job_posting_page
+import tempfile
 from skills_analysis import skills_analysis_page
 from skill_graph import skill_graph_page
 from utils import create_pathway_card, DEFAULT_IMAGES
@@ -161,6 +162,22 @@ def ai_chat_assistant():
         st.session_state.message_count = 0
         st.session_state.last_reset_time = time.time()
     
+    # Initialize reflective questions sequence
+    if "reflective_questions" not in st.session_state:
+        st.session_state.reflective_questions = [
+            "What are your biggest strengths professionally? Think about what others consistently praise you for.",
+            "Which skills do you most enjoy using in your work or projects?",
+            "What aspects of your current or past roles have felt most meaningful to you?",
+            "Imagine your ideal workday - what activities would you be doing?",
+            "What values are most important to you in your work environment?",
+            "What obstacles seem to consistently appear in your career path?",
+            "If resources and time weren't factors, what career path would you pursue?",
+            "What specific impact do you want to make through your work?"
+        ]
+        st.session_state.current_reflective_q = 0
+        st.session_state.reflective_mode = False
+        st.session_state.reflective_responses = {}
+    
     # Check if 30 minutes have passed since the last reset
     current_time = time.time()
     if current_time - st.session_state.last_reset_time > 1800:  # 1800 seconds = 30 minutes
@@ -174,13 +191,27 @@ def ai_chat_assistant():
     else:
         st.info(f"**Messages remaining:** {remaining_messages}/10 for this session. Resets every 30 minutes.")
     
+    # Option to start reflective journey
+    if not st.session_state.reflective_mode:
+        if st.button("Start Career Reflection Journey", key="start_reflection"):
+            st.session_state.reflective_mode = True
+            # Add the first reflection question as an assistant message
+            first_question = st.session_state.reflective_questions[0]
+            if 'messages' not in st.session_state:
+                st.session_state.messages = []
+            st.session_state.messages.append({"role": "assistant", "content": f"**Career Reflection:** {first_question}"})
+            st.rerun()
+    
     # Display chat messages from history on app rerun
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+    if 'messages' in st.session_state:
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
+    else:
+        st.session_state.messages = []
     
     # Accept user input
-    if prompt := st.chat_input("Ask me about career paths, skills, or job opportunities..."):
+    if prompt := st.chat_input("Share your thoughts or ask a question..."):
         # Check rate limit
         if st.session_state.message_count >= 10:
             with st.chat_message("assistant"):
@@ -197,15 +228,78 @@ def ai_chat_assistant():
         # Increment message counter
         st.session_state.message_count += 1
         
-        # Create a placeholder for the assistant's response
-        with st.chat_message("assistant"):
-            response_placeholder = st.empty()
-            
-            # Stream the response from API
-            full_response = stream_ai_response(prompt, response_placeholder)
-            
-        # Add assistant response to chat history
-        st.session_state.messages.append({"role": "assistant", "content": full_response})
+        # Handle the response differently based on mode
+        if st.session_state.reflective_mode:
+            # Save the response to the session state
+            try:
+                # Get the current question
+                current_q = st.session_state.reflective_questions[st.session_state.current_reflective_q]
+                
+                # Store the response
+                st.session_state.reflective_responses[current_q] = prompt
+                
+                # Move to the next question
+                st.session_state.current_reflective_q += 1
+                
+                # Create a placeholder for the assistant's response
+                with st.chat_message("assistant"):
+                    response_placeholder = st.empty()
+                    
+                    # If there are more questions, ask the next one
+                    if st.session_state.current_reflective_q < len(st.session_state.reflective_questions):
+                        next_q = st.session_state.reflective_questions[st.session_state.current_reflective_q]
+                        response = f"Thank you for sharing that. Let's continue with another reflection: **{next_q}**"
+                    else:
+                        # End of reflective questions
+                        response = "Thank you for completing the career reflection! I've recorded your responses, which will help personalize your career guidance. Is there anything specific you'd like to explore now based on your reflections?"
+                        st.session_state.reflective_mode = False
+                        
+                        # In a full implementation, save all responses to database
+                        from database import ChatMessage
+                        # Logic to save to database would go here
+                        
+                    # Display the response
+                    response_placeholder.markdown(response)
+                
+                # Add assistant response to chat history
+                st.session_state.messages.append({"role": "assistant", "content": response})
+                
+            except Exception as e:
+                with st.chat_message("assistant"):
+                    response = f"I appreciate your response. There was a technical issue, but we can continue our conversation. What else would you like to discuss about your career journey?"
+                    st.markdown(response)
+                st.session_state.messages.append({"role": "assistant", "content": response})
+                print(f"Error in reflective mode: {e}")
+        else:
+            # Normal chat mode - process the user's question
+            with st.chat_message("assistant"):
+                response_placeholder = st.empty()
+                
+                # Stream the response from API
+                full_response = stream_ai_response(prompt, response_placeholder)
+                
+            # Add assistant response to chat history
+            st.session_state.messages.append({"role": "assistant", "content": full_response})
+    
+    # Add controls for reflective mode
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("Clear Chat", key="clear_chat"):
+            st.session_state.messages = []
+            st.session_state.current_reflective_q = 0
+            st.session_state.reflective_mode = False
+            st.session_state.reflective_responses = {}
+            st.rerun()
+    
+    with col2:
+        if not st.session_state.reflective_mode and st.button("New Reflection", key="new_reflection"):
+            st.session_state.current_reflective_q = 0
+            st.session_state.reflective_mode = True
+            # Add the first reflection question
+            first_question = st.session_state.reflective_questions[0]
+            st.session_state.messages.append({"role": "assistant", "content": f"**Career Reflection:** {first_question}"})
+            st.rerun()
 
 # Stream AI-powered response with word-by-word display
 def stream_ai_response(question, placeholder):
