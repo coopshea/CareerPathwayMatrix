@@ -54,11 +54,11 @@ def render_welcome_tab():
     
     ### How to Use This App:
     
-    1. **Explore** career pathways using the **2×2 Matrix** tab
-    2. **Analyze** your current skills with the **Skill Graph** tab 
-    3. **Discover** matching careers in the **Find Your Pathway** tab
-    4. **Plan** your journey with the **AI Roadmap** tab
-    5. **Compare** your skills to opportunities in the **Job & Resume Analysis** tab
+    1. **Analyze** your current skills and job requirements with the **Skill Graph** tab
+    2. **Plan** your journey with the **AI Roadmap** tab
+    3. **Showcase** your work in the **Project Portfolio** tab
+    4. **Explore** career pathways using the **2×2 Matrix** tab
+    5. **Discover** matching careers in the **Find Your Pathway** tab
     
     Every journey begins with a single step. Use the tabs above to navigate through the features or ask our 
     AI assistant below for personalized guidance.
@@ -363,16 +363,8 @@ def render_ai_roadmap_tab():
     # Pass the pre-selected pathway to the roadmap generator
     ai_roadmap_generator_page(pre_selected_pathway, pathways_df, metrics_data)
 
-def render_job_resume_tab():
-    st.header("📑 Job & Resume Analysis")
-    
-    st.write("""
-    Upload your resume and job descriptions to analyze the alignment between your skills and job requirements.
-    This analysis helps identify which skills are worth learning first and provides valuable context for personalized career guidance.
-    """)
-    
-    # Create tabs for file upload and manual entry
-    file_tab, questionnaire_tab = st.tabs(["Upload Documents", "Fill Questionnaire"])
+# We've removed the Job & Resume Analysis tab since we've integrated 
+# this functionality into the Skill Graph tab, specifically in the Skills Profile subtab
     
     with file_tab:
         # Create columns for side-by-side layout
