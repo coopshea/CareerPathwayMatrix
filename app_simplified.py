@@ -5,6 +5,7 @@ st.set_page_config(page_title="CareerPath Navigator", layout="wide")
 
 from dataclasses import dataclass, asdict, field
 from typing import Optional, Dict, Any, List
+from datetime import datetime
 
 from data import load_data
 from visualizations import create_matrix_visualization
@@ -144,10 +145,120 @@ def render_welcome_tab():
 
 def render_portfolio_tab():
     st.header("📂 Project Portfolio")
-    b = fu("Upload project doc/image", ["pdf","docx","txt","jpg","png"], key="portfolio_upload")
-    if b: 
-        st.session_state.user_data.portfolio_bytes = b.read()
-        st.success("Portfolio file saved.")
+    st.write("Upload and organize your projects to showcase your skills and experience.")
+    
+    # Initialize project list in session state if needed
+    if "projects" not in st.session_state:
+        st.session_state.projects = []
+    
+    # Create tabs for different project actions
+    upload_tab, view_tab = st.tabs(["Add Project", "View Projects"])
+    
+    with upload_tab:
+        st.subheader("Add a New Project")
+        
+        # Project details form
+        with st.form("project_form", clear_on_submit=True):
+            project_name = st.text_input("Project Name", placeholder="e.g., E-commerce Website")
+            project_desc = st.text_area("Project Description", placeholder="Describe your project and your role...", height=150)
+            project_skills = st.text_input("Skills Used (comma-separated)", placeholder="e.g., Python, React, SQL")
+            project_link = st.text_input("Project Link (optional)", placeholder="https://github.com/...")
+            
+            # File uploader for project documentation/screenshots
+            project_file = fu("Upload Project Documentation/Screenshot", 
+                           ["pdf", "docx", "txt", "jpg", "png", "gif"], 
+                           key="portfolio_upload")
+            
+            submitted = st.form_submit_button("Add Project")
+            
+            if submitted:
+                if not project_name or not project_desc:
+                    st.error("Please provide at least a project name and description.")
+                else:
+                    # Create new project entry
+                    new_project = {
+                        "name": project_name,
+                        "description": project_desc,
+                        "skills": [skill.strip() for skill in project_skills.split(",") if skill.strip()],
+                        "link": project_link if project_link else "",
+                        "date_added": datetime.now().strftime("%Y-%m-%d"),
+                        "file": None,
+                        "file_type": None
+                    }
+                    
+                    # Process file if uploaded
+                    if project_file:
+                        file_content = project_file.read()
+                        
+                        # Save file content and type
+                        new_project["file"] = file_content
+                        new_project["file_type"] = project_file.type
+                        
+                        # Store in user data if available
+                        if "user_data" in st.session_state:
+                            st.session_state.user_data.portfolio_bytes = file_content
+                    
+                    # Add project to session state
+                    st.session_state.projects.append(new_project)
+                    st.success(f"Project '{project_name}' added successfully!")
+                    
+                    # Update user skills if needed
+                    if "user_skills" in st.session_state and new_project["skills"]:
+                        for skill in new_project["skills"]:
+                            if skill not in st.session_state.user_skills:
+                                st.session_state.user_skills[skill] = {
+                                    "rating": 3,  # Default rating
+                                    "experience": f"Used in project: {project_name}",
+                                    "projects": [project_name]
+                                }
+                            else:
+                                # Update existing skill with this project
+                                if "projects" not in st.session_state.user_skills[skill]:
+                                    st.session_state.user_skills[skill]["projects"] = []
+                                
+                                if project_name not in st.session_state.user_skills[skill]["projects"]:
+                                    st.session_state.user_skills[skill]["projects"].append(project_name)
+    
+    with view_tab:
+        if not st.session_state.projects:
+            st.info("No projects added yet. Add some projects in the 'Add Project' tab.")
+        else:
+            st.subheader("Your Projects")
+            
+            # Display projects
+            for i, project in enumerate(st.session_state.projects):
+                with st.expander(f"{project['name']} ({project['date_added']})"):
+                    st.markdown(f"**Description:** {project['description']}")
+                    
+                    if project['skills']:
+                        st.markdown(f"**Skills:** {', '.join(project['skills'])}")
+                    
+                    if project['link']:
+                        st.markdown(f"**Link:** [{project['link']}]({project['link']})")
+                    
+                    # Display file if available
+                    if project['file'] is not None:
+                        st.markdown("**Attached File:**")
+                        
+                        # Handle different file types
+                        if project['file_type'] and 'image' in project['file_type']:
+                            st.image(project['file'], caption=f"Image for {project['name']}")
+                        elif project['file_type'] and 'pdf' in project['file_type']:
+                            st.markdown(f"PDF file attached (not displayed)")
+                        else:
+                            st.markdown(f"File attached (not displayed)")
+                    
+                    # Delete button
+                    if st.button("Delete Project", key=f"del_project_{i}"):
+                        st.session_state.projects.pop(i)
+                        st.success(f"Project deleted.")
+                        st.rerun()
+            
+            # Export portfolio button
+            if st.button("Generate Portfolio Report"):
+                # This would be a feature to generate a formatted report
+                # of all projects, skills, etc.
+                st.info("Portfolio report generation is coming soon!")
 
 def render_2x2_matrix_tab():
     st.header("🔢 2×2 Matrix")

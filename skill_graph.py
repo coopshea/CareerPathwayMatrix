@@ -648,7 +648,419 @@ def analyze_project_for_skills(project_description, project_link=""):
 
 def render_skill_graph_tab(user_data=None, selectbox=None):
     """Render the skill graph tab with the provided user data"""
-    skill_graph_page()
+    
+    st.title("🧩 Skills Analysis & Career Planning")
+    
+    # Create tabs for different skill analysis views
+    skills_tab, roadmap_tab, jobs_tab = st.tabs(["Skills Profile", "Skill Roadmap", "Job Requirements"])
+    
+    with skills_tab:
+        st.header("Skills Profile")
+        st.write("Upload your resume or manually add skills to visualize your current skill set.")
+        
+        # Resume upload section
+        resume_col1, resume_col2 = st.columns([2, 1])
+        
+        with resume_col1:
+            resume_file = st.file_uploader("Upload your resume (PDF, DOCX, or TXT)", 
+                                      type=["pdf", "docx", "txt"],
+                                      key="skill_graph_resume_upload")
+            
+            if resume_file:
+                # Process resume
+                with st.spinner("Processing resume..."):
+                    file_content = resume_file.read()
+                    
+                    # Extract text based on file type
+                    resume_text = ""
+                    try:
+                        if resume_file.type == "application/pdf":
+                            # Process PDF
+                            import io
+                            from PyPDF2 import PdfReader
+                            pdf_reader = PdfReader(io.BytesIO(file_content))
+                            for page in pdf_reader.pages:
+                                resume_text += page.extract_text() + "\n"
+                        
+                        elif resume_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+                            # Process DOCX
+                            import io
+                            from docx import Document
+                            doc = Document(io.BytesIO(file_content))
+                            resume_text = "\n".join([para.text for para in doc.paragraphs])
+                        
+                        else:
+                            # Process as plain text
+                            resume_text = file_content.decode("utf-8")
+                            
+                        st.success("Resume processed successfully!")
+                        
+                        # Store in session state
+                        if user_data:
+                            user_data.resume_bytes = file_content
+                        
+                        # Analyze resume for skills
+                        with st.spinner("Extracting skills..."):
+                            try:
+                                # Try using AI for skill extraction
+                                skills_dict = analyze_resume_skills(resume_text)
+                                st.session_state.user_skills = skills_dict
+                                st.success("Skills extracted successfully!")
+                            except Exception as e:
+                                # Fallback to sample skills on API error
+                                st.warning(f"Using sample skills data due to an error. Try again later.")
+                                st.session_state.user_skills = get_sample_skills()
+                    
+                    except Exception as e:
+                        st.error(f"Error processing file: {str(e)}")
+        
+        with resume_col2:
+            if st.button("Extract Skills", key="extract_skills_btn"):
+                if "user_skills" not in st.session_state or not st.session_state.user_skills:
+                    st.warning("Please upload a resume first or add skills manually.")
+                else:
+                    st.success("Skills updated!")
+        
+        # Display and edit skills section
+        st.subheader("Your Skills")
+        
+        if "user_skills" in st.session_state and st.session_state.user_skills:
+            # Create a form for adding/editing skills
+            with st.form("edit_skills_form", clear_on_submit=True):
+                new_skill = st.text_input("Add a new skill:", placeholder="e.g., Python, Project Management")
+                new_rating = st.slider("Proficiency level:", 1, 5, 3)
+                new_experience = st.text_area("Experience with this skill:", placeholder="Describe your experience...", height=100)
+                
+                submitted = st.form_submit_button("Add/Update Skill")
+                
+                if submitted and new_skill:
+                    # Add or update the skill
+                    st.session_state.user_skills[new_skill] = {
+                        "rating": new_rating,
+                        "experience": new_experience,
+                        "projects": []
+                    }
+                    st.success(f"Added/updated skill: {new_skill}")
+                    st.rerun()
+            
+            # Display current skills
+            st.markdown("#### Current Skills")
+            
+            # Create two columns for skills display
+            skills_col1, skills_col2 = st.columns(2)
+            
+            # Sort skills by rating (highest first)
+            sorted_skills = sorted(
+                st.session_state.user_skills.items(), 
+                key=lambda x: x[1].get("rating", 0), 
+                reverse=True
+            )
+            
+            for i, (skill, details) in enumerate(sorted_skills):
+                # Alternate between columns
+                with skills_col1 if i % 2 == 0 else skills_col2:
+                    with st.expander(f"{skill} - {'⭐' * details.get('rating', 0)}"):
+                        st.markdown(f"**Experience:** {details.get('experience', 'Not specified')}")
+                        
+                        # Projects using this skill
+                        if details.get("projects"):
+                            st.markdown("**Projects:**")
+                            for project in details["projects"]:
+                                st.markdown(f"- {project}")
+                        
+                        # Delete button
+                        if st.button("Delete Skill", key=f"del_{skill}"):
+                            del st.session_state.user_skills[skill]
+                            st.success(f"Deleted skill: {skill}")
+                            st.experimental_rerun()
+            
+            # Generate and display the skill graph
+            if len(st.session_state.user_skills) > 1:
+                st.subheader("Skill Graph Visualization")
+                job_skills = fetch_job_skills()
+                
+                if job_skills:
+                    user_graph = generate_skill_graph(st.session_state.user_skills, job_skills)
+                    net = create_interactive_graph(user_graph)
+                    html = get_html_network(net)
+                    
+                    # Display the graph
+                    st.components.v1.html(html, height=600)
+                    
+                    # Identify skill gaps
+                    st.subheader("Recommended Skills to Acquire")
+                    skill_gaps = identify_skill_gaps(st.session_state.user_skills, job_skills)
+                    
+                    if skill_gaps:
+                        for i, (skill, freq) in enumerate(skill_gaps[:5]):
+                            st.markdown(f"{i+1}. **{skill}** - Appears in {freq} job postings")
+                    else:
+                        st.info("No significant skill gaps identified.")
+                else:
+                    st.info("No job skills data available for comparison.")
+            else:
+                st.info("Add more skills to generate a skill graph visualization.")
+        else:
+            st.info("No skills found. Please upload a resume or add skills manually.")
+            
+            # Manual skill entry form
+            with st.form("add_first_skill_form", clear_on_submit=True):
+                new_skill = st.text_input("Add your first skill:", placeholder="e.g., Python, Project Management")
+                new_rating = st.slider("Proficiency level:", 1, 5, 3)
+                new_experience = st.text_area("Experience with this skill:", placeholder="Describe your experience...", height=100)
+                
+                submitted = st.form_submit_button("Add Skill")
+                
+                if submitted and new_skill:
+                    # Initialize user_skills if needed
+                    if "user_skills" not in st.session_state:
+                        st.session_state.user_skills = {}
+                    
+                    # Add the skill
+                    st.session_state.user_skills[new_skill] = {
+                        "rating": new_rating,
+                        "experience": new_experience,
+                        "projects": []
+                    }
+                    st.success(f"Added skill: {new_skill}")
+                    st.experimental_rerun()
+    
+    with roadmap_tab:
+        st.header("Skill Development Roadmap")
+        st.write("Plan your learning path to acquire important skills for your target career.")
+        
+        if "user_skills" not in st.session_state or not st.session_state.user_skills:
+            st.warning("Please add skills in the Skills Profile tab first.")
+        else:
+            # Get job skills for comparison
+            job_skills = fetch_job_skills()
+            
+            if not job_skills:
+                st.warning("No job skills data available. Please add job postings in the Job Requirements tab.")
+            else:
+                # Identify skill gaps for roadmap creation
+                skill_gaps = identify_skill_gaps(st.session_state.user_skills, job_skills)
+                
+                if skill_gaps:
+                    # Allow user to select a target skill
+                    target_skill = st.selectbox(
+                        "Select a skill to develop:",
+                        [skill for skill, _ in skill_gaps[:10]],
+                        key="target_skill_select"
+                    )
+                    
+                    if target_skill:
+                        # Generate a roadmap for acquiring the target skill
+                        with st.spinner("Generating skill roadmap..."):
+                            try:
+                                import os
+                                api_key = os.environ.get("OPENAI_API_KEY")
+                                
+                                if api_key:
+                                    # Use OpenAI to generate a personalized roadmap
+                                    from openai import OpenAI
+                                    
+                                    client = OpenAI(api_key=api_key)
+                                    
+                                    # Create current skills summary
+                                    current_skills_summary = ", ".join(st.session_state.user_skills.keys())
+                                    
+                                    prompt = f"""
+                                    I want to develop the skill '{target_skill}' for my career growth.
+                                    My current skills are: {current_skills_summary}.
+                                    
+                                    Please create a detailed learning roadmap with:
+                                    1. Recommended prerequisites (if any)
+                                    2. Specific learning resources (courses, books, tutorials)
+                                    3. Projects to build for applying this skill
+                                    4. Estimated timeline for skill development
+                                    5. How this skill connects to my existing skills
+                                    
+                                    Format the response in a clear, structured way with headings and bullet points.
+                                    """
+                                    
+                                    response = client.chat.completions.create(
+                                        model="gpt-4o",
+                                        messages=[{"role": "user", "content": prompt}],
+                                        temperature=0.7,
+                                        max_tokens=1000
+                                    )
+                                    
+                                    roadmap_content = response.choices[0].message.content
+                                    
+                                    # Display the generated roadmap
+                                    st.markdown("### Your Personalized Learning Path")
+                                    st.markdown(roadmap_content)
+                                    
+                                    # Add option to save this roadmap
+                                    if st.button("Save This Roadmap"):
+                                        if "saved_roadmaps" not in st.session_state:
+                                            st.session_state.saved_roadmaps = {}
+                                        
+                                        st.session_state.saved_roadmaps[target_skill] = {
+                                            "content": roadmap_content,
+                                            "date_created": datetime.now().strftime("%Y-%m-%d")
+                                        }
+                                        
+                                        st.success(f"Roadmap for {target_skill} saved successfully!")
+                                else:
+                                    # Fallback to a simpler roadmap
+                                    roadmap = generate_skill_roadmap(st.session_state.user_skills, target_skill, job_skills)
+                                    display_roadmap(roadmap)
+                            except Exception as e:
+                                st.error(f"Error generating roadmap: {str(e)}")
+                                # Fallback to the basic roadmap generator
+                                roadmap = generate_skill_roadmap(st.session_state.user_skills, target_skill, job_skills)
+                                display_roadmap(roadmap)
+                else:
+                    st.info("No significant skill gaps identified. Your skills align well with job market demands!")
+                    
+                # Show saved roadmaps if any
+                if "saved_roadmaps" in st.session_state and st.session_state.saved_roadmaps:
+                    st.subheader("Your Saved Roadmaps")
+                    
+                    for skill, roadmap_data in st.session_state.saved_roadmaps.items():
+                        with st.expander(f"{skill} (Created: {roadmap_data['date_created']})"):
+                            st.markdown(roadmap_data["content"])
+                            
+                            if st.button("Delete Roadmap", key=f"del_roadmap_{skill}"):
+                                del st.session_state.saved_roadmaps[skill]
+                                st.success(f"Roadmap for {skill} deleted.")
+                                st.experimental_rerun()
+    
+    with jobs_tab:
+        st.header("Job Requirements Analysis")
+        st.write("Analyze job postings to extract skill requirements and compare with your profile.")
+        
+        # Job posting input
+        job_text = st.text_area("Paste job description text here:", height=200, key="job_text_skill_tab")
+        job_url = st.text_input("Or enter job posting URL:", key="job_url_skill_tab")
+        
+        if st.button("Analyze Job Requirements", key="analyze_job_btn_skill_tab"):
+            if not job_text and not job_url:
+                st.warning("Please enter a job description or URL.")
+            else:
+                with st.spinner("Analyzing job requirements..."):
+                    # Import needed functions
+                    from job_postings_merged import analyze_job_posting, get_website_text_content, convert_job_to_pathway
+                    
+                    # Get job text from URL if provided
+                    if job_url and not job_text:
+                        try:
+                            job_text = get_website_text_content(job_url)
+                            st.success(f"Successfully extracted content from URL")
+                        except Exception as e:
+                            st.error(f"Error extracting content from URL: {str(e)}")
+                    
+                    if job_text:
+                        try:
+                            # Analyze job posting
+                            job_data = analyze_job_posting(job_text)
+                            
+                            # Store in session state
+                            if "job_postings" not in st.session_state:
+                                st.session_state.job_postings = []
+                            
+                            # Add to job postings list if it's not already there
+                            if job_data not in st.session_state.job_postings:
+                                st.session_state.job_postings.append(job_data)
+                                
+                                # Update user data if available
+                                if user_data:
+                                    user_data.job_bytes = job_text.encode('utf-8')
+                            
+                            # Display results
+                            st.subheader("Analysis Results")
+                            
+                            # Job title and company
+                            st.markdown(f"**Position:** {job_data.get('title', 'Unknown')}")
+                            st.markdown(f"**Company:** {job_data.get('company', 'Unknown')}")
+                            
+                            # Create columns for requirements
+                            req_col1, req_col2 = st.columns(2)
+                            
+                            with req_col1:
+                                st.markdown("**Required Skills:**")
+                                required_skills = job_data.get('required_skills', [])
+                                for skill in required_skills:
+                                    # Check if user has this skill
+                                    if "user_skills" in st.session_state and skill in st.session_state.user_skills:
+                                        st.markdown(f"- ✅ {skill}")
+                                    else:
+                                        st.markdown(f"- ❌ {skill}")
+                            
+                            with req_col2:
+                                st.markdown("**Preferred Skills:**")
+                                preferred_skills = job_data.get('preferred_skills', [])
+                                for skill in preferred_skills:
+                                    # Check if user has this skill
+                                    if "user_skills" in st.session_state and skill in st.session_state.user_skills:
+                                        st.markdown(f"- ✅ {skill}")
+                                    else:
+                                        st.markdown(f"- ❌ {skill}")
+                            
+                            # Experience and education
+                            st.markdown(f"**Experience:** {job_data.get('experience', 'Not specified')}")
+                            st.markdown(f"**Education:** {job_data.get('education', 'Not specified')}")
+                            
+                            # Calculate match percentage
+                            if "user_skills" in st.session_state and st.session_state.user_skills:
+                                user_skill_names = set(st.session_state.user_skills.keys())
+                                job_skill_names = set(required_skills + preferred_skills)
+                                
+                                if job_skill_names:
+                                    matching_skills = user_skill_names.intersection(job_skill_names)
+                                    match_percentage = (len(matching_skills) / len(job_skill_names)) * 100
+                                    
+                                    st.markdown(f"**Skill Match:** {match_percentage:.1f}%")
+                                    
+                                    # Skill gap analysis
+                                    if match_percentage < 100:
+                                        missing_skills = job_skill_names - user_skill_names
+                                        st.subheader("Skills to Develop")
+                                        st.write("These skills would improve your match for this position:")
+                                        
+                                        for skill in missing_skills:
+                                            st.markdown(f"- {skill}")
+                                else:
+                                    st.info("No specific skills were identified in this job posting.")
+                            else:
+                                st.warning("Add your skills in the Skills Profile tab to see how well you match this job.")
+                            
+                            # Option to include these skills in roadmap planning
+                            if st.button("Add Missing Skills to Your Profile", key="add_missing_skills"):
+                                if "user_skills" not in st.session_state:
+                                    st.session_state.user_skills = {}
+                                
+                                if job_skill_names:
+                                    missing_skills = job_skill_names - user_skill_names
+                                    for skill in missing_skills:
+                                        if skill not in st.session_state.user_skills:
+                                            st.session_state.user_skills[skill] = {
+                                                "rating": 1,  # Low initial rating
+                                                "experience": f"Added from job: {job_data.get('title', 'Unknown')}",
+                                                "projects": []
+                                            }
+                                    
+                                    st.success(f"Added {len(missing_skills)} new skills to your profile!")
+                                    st.experimental_rerun()
+                            
+                        except Exception as e:
+                            st.error(f"Error analyzing job posting: {str(e)}")
+        
+        # Display saved job postings
+        if "job_postings" in st.session_state and st.session_state.job_postings:
+            st.subheader("Saved Job Postings")
+            
+            for i, job in enumerate(st.session_state.job_postings):
+                with st.expander(f"{job.get('title', 'Job Posting')} at {job.get('company', 'Company')}"):
+                    st.markdown(f"**Required Skills:** {', '.join(job.get('required_skills', []))}")
+                    st.markdown(f"**Preferred Skills:** {', '.join(job.get('preferred_skills', []))}")
+                    
+                    if st.button("Remove", key=f"remove_job_{i}"):
+                        st.session_state.job_postings.pop(i)
+                        st.success("Job posting removed.")
+                        st.experimental_rerun()
 
 def skill_graph_page():
     """Streamlit page for the interactive skill graph and roadmap visualizations."""
