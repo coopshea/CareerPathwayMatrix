@@ -303,48 +303,31 @@ def get_quick_response(question):
 # 4) Page‐by‐page renderers
 def render_welcome_tab():
     st.header("🚀 Welcome to CareerPath Navigator")
-    st.markdown("Use the buttons below or the tabs above to navigate the app:")
     
-    # Button grid - 3x2 layout
-    st.write("")  # Add some space at the top
+    # Motivational introduction
+    st.markdown("""
+    ### Finding Your Path Forward
     
-    # Create 3 rows of 2 buttons each
-    row1 = st.columns(2)
-    with row1[0]:
-        if st.button("📊 Compare Career Paths", use_container_width=True, key="btn_matrix"):
-            st.session_state.active_tab = 5  # 2x2 Matrix tab
-            st.rerun()
+    Feeling stuck in your current role? Excited about exploring a new industry but not sure where to start? 
     
-    with row1[1]:
-        if st.button("💡 Find Matching Careers", use_container_width=True, key="btn_pathway"):
-            st.session_state.active_tab = 6  # Find Your Pathway tab
-            st.rerun()
+    **CareerPath Navigator** is designed for professionals just like you - helping you bridge the gap between 
+    where you are now and where you want to be.
     
-    row2 = st.columns(2)
-    with row2[0]:
-        if st.button("🧩 Analyze My Skills", use_container_width=True, key="btn_skills"):
-            st.session_state.active_tab = 3  # Skill Graph tab
-            st.rerun()
+    ### How to Use This App:
     
-    with row2[1]:
-        if st.button("🛣️ Create Career Roadmap", use_container_width=True, key="btn_roadmap"):
-            st.session_state.active_tab = 2  # AI Roadmap tab
-            st.rerun()
+    1. **Explore** career pathways using the **2×2 Matrix** tab
+    2. **Analyze** your current skills with the **Skill Graph** tab 
+    3. **Discover** matching careers in the **Find Your Pathway** tab
+    4. **Plan** your journey with the **AI Roadmap** tab
+    5. **Compare** your skills to opportunities in the **Job & Resume Analysis** tab
     
-    row3 = st.columns(2)
-    with row3[0]:
-        if st.button("🔍 Analyze Job Posting", use_container_width=True, key="btn_job"):
-            st.session_state.active_tab = 1  # Job & Resume Analysis tab
-            st.rerun()
+    Every journey begins with a single step. Use the tabs above to navigate through the features or ask our 
+    AI assistant below for personalized guidance.
+    """)
     
-    with row3[1]:
-        if st.button("📈 Manage Portfolio", use_container_width=True, key="btn_portfolio"):
-            st.session_state.active_tab = 4  # Project Portfolio tab
-            st.rerun()
-            
-    # AI chat assistant below the buttons
+    # AI chat assistant
     st.markdown("---")
-    st.markdown("### Not sure where to start?")
+    st.markdown("### Not sure where to start? Ask our AI Career Assistant")
     
     # AI chat assistant
     render_ai_chat_assistant()
