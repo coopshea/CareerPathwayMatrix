@@ -654,8 +654,8 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
     
     st.title("🧩 Skills Analysis & Career Planning")
     
-    # Create tabs for different skill analysis views - removed Job Requirements tab
-    skills_tab, roadmap_tab = st.tabs(["Skills Profile", "Skill Roadmap"])
+    # Create tabs for different skill analysis views
+    skills_tab, graph_tab, roadmap_tab = st.tabs(["Skills Profile", "Skill Graph", "Skill Roadmap"])
     
     with skills_tab:
         st.header("Skills Profile")
@@ -1003,225 +1003,224 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
                         except Exception as e:
                             st.error(f"Error saving changes: {str(e)}")
     
-    with roadmap_tab:
-        st.header("Skill Graph & Roadmap")
-        st.write("Visualize your skills in relation to job requirements and plan your skill development.")
+    with graph_tab:
+        st.header("Skill Graph Visualization")
+        st.write("Visualize your skills in relation to job requirements from the database.")
         
         if "user_skills" not in st.session_state or not st.session_state.user_skills:
             st.warning("Please add skills in the Skills Profile tab first.")
         else:
-            # Create tabs for graph and roadmap
-            graph_tab, learn_tab = st.tabs(["Skill Graph", "Learning Paths"])
+            # Create sidebar filters for job skills
+            st.sidebar.subheader("Skill Graph Filters")
             
-            with graph_tab:
-                st.subheader("Skills Visualization")
-                
-                # Create sidebar filters for job skills
-                st.sidebar.subheader("Skill Graph Filters")
-                
-                skill_type = st.sidebar.selectbox(
-                    "Job Skill Type Filter", 
-                    ["All", "Required", "Preferred"],
-                    index=0
-                )
-                
-                job_category = st.sidebar.selectbox(
-                    "Job Category Filter",
-                    ["All Categories", "Software Development", "Data Science", "Product Management"],
-                    index=0
-                )
-                
-                # Convert filters for database
-                skill_type_param = None if skill_type == "All" else skill_type.lower()
-                category_param = None if job_category == "All Categories" else job_category
-                
-                # Number of skills to show
-                top_n = st.sidebar.slider(
-                    "Number of Job Skills to Include", 
-                    10, 100, 50
-                )
-                
-                # Get job skills from database
-                from database import fetch_job_skills
-                
-                # Fetch job skills for visualization
-                job_skills = fetch_job_skills(top_n=top_n, skill_type=skill_type_param, category=category_param)
-                
-                if not job_skills:
-                    st.info("No job skills found in the database. Try uploading some job postings first.")
-                else:
-                    # Create the skill graph
-                    graph = generate_skill_graph(st.session_state.user_skills, job_skills)
-                    
-                    # Create the interactive visualization
-                    net = create_interactive_graph(graph)
-                    
-                    # Get the HTML representation
-                    html = get_html_network(net)
-                    
-                    # Display the visualization
-                    st.components.v1.html(html, height=600)
-                    
-                    # Display skill gap analysis
-                    missing_skills = identify_skill_gaps(st.session_state.user_skills, job_skills)
-                    
-                    st.write("## Skill Gap Analysis")
-                    st.write("""
-                    These are the most in-demand skills from job postings that are missing from your profile.
-                    Focus on acquiring these skills to improve your job market value.
-                    """)
-                    
-                    if missing_skills:
-                        import pandas as pd
-                        
-                        # Create a table of the top missing skills
-                        missing_df = pd.DataFrame(
-                            [(skill['name'], skill['frequency'], skill.get('skill_type', 'general')) 
-                             for skill in missing_skills[:10]], 
-                            columns=["Skill", "Job Count", "Type"]
-                        )
-                        
-                        st.table(missing_df)
-                        
-                        # Button to add all missing skills to profile
-                        if st.button("Add Missing Skills to Profile", key="add_graph_skills_btn"):
-                            added_count = 0
-                            for skill in missing_skills[:10]:
-                                skill_name = skill['name']
-                                if skill_name not in st.session_state.user_skills:
-                                    st.session_state.user_skills[skill_name] = {
-                                        "rating": 1,
-                                        "experience": f"Added from skill gap analysis",
-                                        "projects": []
-                                    }
-                                    added_count += 1
-                            
-                            # Save to database
-                            try:
-                                from database import save_user_skills
-                                save_user_skills(st.session_state.user_skills)
-                                st.success(f"Added {added_count} new skills to your profile!")
-                            except Exception as e:
-                                st.warning(f"Could not save skills to database: {e}")
-                    else:
-                        st.success("You have all the skills required by the job postings in the database!")
+            skill_type = st.sidebar.selectbox(
+                "Job Skill Type Filter", 
+                ["All", "Required", "Preferred"],
+                index=0
+            )
             
-            with learn_tab:
-                st.subheader("Skill Learning Paths")
+            job_category = st.sidebar.selectbox(
+                "Job Category Filter",
+                ["All Categories", "Software Development", "Data Science", "Product Management"],
+                index=0
+            )
+            
+            # Convert filters for database
+            skill_type_param = None if skill_type == "All" else skill_type.lower()
+            category_param = None if job_category == "All Categories" else job_category
+            
+            # Number of skills to show
+            top_n = st.sidebar.slider(
+                "Number of Job Skills to Include", 
+                10, 100, 50
+            )
+            
+            # Get job skills from database
+            from database import fetch_job_skills
+            
+            # Fetch job skills for visualization
+            job_skills = fetch_job_skills(top_n=top_n, skill_type=skill_type_param, category=category_param)
+            
+            if not job_skills:
+                st.info("No job skills found in the database. Try uploading some job postings first.")
+            else:
+                # Create the skill graph
+                graph = generate_skill_graph(st.session_state.user_skills, job_skills)
                 
-                # Get job skills from database
-                job_skills = fetch_job_skills(top_n=100)
+                # Create the interactive visualization
+                net = create_interactive_graph(graph)
                 
-                if not job_skills:
-                    st.info("No job skills found in the database. Try uploading some job postings first.")
-                else:
-                    # Identify skill gaps
-                    missing_skills = identify_skill_gaps(st.session_state.user_skills, job_skills)
+                # Get the HTML representation
+                html = get_html_network(net)
+                
+                # Display the visualization
+                st.components.v1.html(html, height=600)
+                
+                # Display skill gap analysis
+                missing_skills = identify_skill_gaps(st.session_state.user_skills, job_skills)
+                
+                st.write("## Skill Gap Analysis")
+                st.write("""
+                These are the most in-demand skills from job postings that are missing from your profile.
+                Focus on acquiring these skills to improve your job market value.
+                """)
+                
+                if missing_skills:
+                    import pandas as pd
                     
-                    if not missing_skills:
-                        st.success("You already have all the skills found in job postings! Consider exploring more advanced skills.")
-                        # Use all job skills as options
-                        skill_options = list(set(s['name'] for s in job_skills))
-                    else:
-                        # Use top missing skills as options
-                        skill_options = [s['name'] for s in missing_skills[:15]]
-                    
-                    # Let user select a skill to learn
-                    selected_skill = st.selectbox(
-                        "Select a skill you want to learn",
-                        options=skill_options
+                    # Create a table of the top missing skills
+                    missing_df = pd.DataFrame(
+                        [(skill['name'], skill['frequency'], skill.get('skill_type', 'general')) 
+                         for skill in missing_skills[:10]], 
+                        columns=["Skill", "Job Count", "Type"]
                     )
                     
-                    if selected_skill:
-                        # Generate a roadmap for the selected skill
-                        roadmap = generate_skill_roadmap(
-                            st.session_state.user_skills, 
-                            selected_skill,
-                            job_skills
-                        )
+                    st.table(missing_df)
+                    
+                    # Button to add all missing skills to profile
+                    if st.button("Add Missing Skills to Profile", key="add_graph_skills_btn"):
+                        added_count = 0
+                        for skill in missing_skills[:10]:
+                            skill_name = skill['name']
+                            if skill_name not in st.session_state.user_skills:
+                                st.session_state.user_skills[skill_name] = {
+                                    "rating": 1,
+                                    "experience": f"Added from skill gap analysis",
+                                    "projects": []
+                                }
+                                added_count += 1
                         
-                        # Display the roadmap
-                        display_roadmap(roadmap)
-                        
-                        # Add AI-generated roadmap option using GPT
-                        st.write("---")
-                        st.subheader("Generate Detailed Learning Path")
-                        st.write("Use AI to create a personalized learning path for this skill.")
-                        
-                        if st.button("Generate AI Learning Path", key="generate_ai_path"):
-                            with st.spinner("Generating personalized learning path..."):
-                                try:
-                                    # Create a prompt for the OpenAI API
-                                    prompt = f"""
-                                    I want to develop the skill '{selected_skill}' for my career growth.
-                                    My current skills are: {', '.join(st.session_state.user_skills.keys())}.
+                        # Save to database
+                        try:
+                            from database import save_user_skills
+                            save_user_skills(st.session_state.user_skills)
+                            st.success(f"Added {added_count} new skills to your profile!")
+                        except Exception as e:
+                            st.warning(f"Could not save skills to database: {e}")
+                else:
+                    st.success("You have all the skills required by the job postings in the database!")
+    
+    with roadmap_tab:
+        st.header("Skill Learning Paths")
+        st.write("Plan your learning journey to acquire important skills for your career.")
+        
+        if "user_skills" not in st.session_state or not st.session_state.user_skills:
+            st.warning("Please add skills in the Skills Profile tab first.")
+        else:
+            # Get job skills from database
+            from database import fetch_job_skills
+            job_skills = fetch_job_skills(top_n=100)
+            
+            if not job_skills:
+                st.info("No job skills found in the database. Try uploading some job postings first.")
+            else:
+                # Identify skill gaps
+                missing_skills = identify_skill_gaps(st.session_state.user_skills, job_skills)
+                
+                if not missing_skills:
+                    st.success("You already have all the skills found in job postings! Consider exploring more advanced skills.")
+                    # Use all job skills as options
+                    skill_options = list(set(s['name'] for s in job_skills))
+                else:
+                    # Use top missing skills as options
+                    skill_options = [s['name'] for s in missing_skills[:15]]
+                
+                # Let user select a skill to learn
+                selected_skill = st.selectbox(
+                    "Select a skill you want to learn",
+                    options=skill_options
+                )
+                
+                if selected_skill:
+                    # Generate a roadmap for the selected skill
+                    roadmap = generate_skill_roadmap(
+                        st.session_state.user_skills, 
+                        selected_skill,
+                        job_skills
+                    )
+                    
+                    # Display the roadmap
+                    display_roadmap(roadmap)
+                    
+                    # Add AI-generated roadmap option using GPT
+                    st.write("---")
+                    st.subheader("Generate Detailed Learning Path")
+                    st.write("Use AI to create a personalized learning path for this skill.")
+                    
+                    if st.button("Generate AI Learning Path", key="generate_ai_path"):
+                        with st.spinner("Generating personalized learning path..."):
+                            try:
+                                # Create a prompt for the OpenAI API
+                                prompt = f"""
+                                I want to develop the skill '{selected_skill}' for my career growth.
+                                My current skills are: {', '.join(st.session_state.user_skills.keys())}.
+                                
+                                Please create a detailed learning roadmap with:
+                                1. Recommended prerequisites (if any)
+                                2. Specific learning resources (courses, books, tutorials)
+                                3. Projects to build for applying this skill
+                                4. Estimated timeline for skill development
+                                5. How this skill connects to my existing skills
+                                
+                                Format the response in a clear, structured way with headings and bullet points.
+                                """
+                                
+                                # Make the API call
+                                from openai import OpenAI
+                                import os
+                                
+                                client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+                                
+                                response = client.chat.completions.create(
+                                    model="gpt-4o",
+                                    messages=[
+                                        {"role": "system", "content": "You are a career development and learning specialist who creates detailed skill acquisition roadmaps."},
+                                        {"role": "user", "content": prompt}
+                                    ]
+                                )
+                                
+                                if response and response.choices:
+                                    roadmap_content = response.choices[0].message.content
                                     
-                                    Please create a detailed learning roadmap with:
-                                    1. Recommended prerequisites (if any)
-                                    2. Specific learning resources (courses, books, tutorials)
-                                    3. Projects to build for applying this skill
-                                    4. Estimated timeline for skill development
-                                    5. How this skill connects to my existing skills
+                                    # Display the generated roadmap
+                                    st.markdown("### Your Personalized Learning Path")
+                                    st.markdown(roadmap_content)
                                     
-                                    Format the response in a clear, structured way with headings and bullet points.
-                                    """
-                                    
-                                    # Make the API call
-                                    from openai import OpenAI
-                                    import os
-                                    
-                                    client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-                                    
-                                    response = client.chat.completions.create(
-                                        model="gpt-4o",
-                                        messages=[
-                                            {"role": "system", "content": "You are a career development and learning specialist who creates detailed skill acquisition roadmaps."},
-                                            {"role": "user", "content": prompt}
-                                        ]
-                                    )
-                                    
-                                    if response and response.choices:
-                                        roadmap_content = response.choices[0].message.content
+                                    # Add option to save this roadmap
+                                    if st.button("Save This Roadmap"):
+                                        if "saved_roadmaps" not in st.session_state:
+                                            st.session_state.saved_roadmaps = {}
                                         
-                                        # Display the generated roadmap
-                                        st.markdown("### Your Personalized Learning Path")
-                                        st.markdown(roadmap_content)
+                                        st.session_state.saved_roadmaps[selected_skill] = {
+                                            "content": roadmap_content,
+                                            "date_created": datetime.now().strftime("%Y-%m-%d")
+                                        }
                                         
-                                        # Add option to save this roadmap
-                                        if st.button("Save This Roadmap"):
-                                            if "saved_roadmaps" not in st.session_state:
-                                                st.session_state.saved_roadmaps = {}
-                                            
-                                            st.session_state.saved_roadmaps[selected_skill] = {
-                                                "content": roadmap_content,
-                                                "date_created": datetime.now().strftime("%Y-%m-%d")
-                                            }
-                                            
-                                            st.success(f"Roadmap for {selected_skill} saved successfully!")
-                                    else:
-                                        # Fallback to a simpler roadmap
-                                        roadmap = generate_skill_roadmap(st.session_state.user_skills, selected_skill, job_skills)
-                                        display_roadmap(roadmap)
-                                except Exception as e:
-                                    st.error(f"Error generating roadmap: {str(e)}")
-                                    # Fallback to the basic roadmap generator
+                                        st.success(f"Roadmap for {selected_skill} saved successfully!")
+                                else:
+                                    # Fallback to a simpler roadmap
                                     roadmap = generate_skill_roadmap(st.session_state.user_skills, selected_skill, job_skills)
                                     display_roadmap(roadmap)
-                    else:
-                        st.info("No significant skill gaps identified. Your skills align well with job market demands!")
-                        
-                    # Show saved roadmaps if any
-                    if "saved_roadmaps" in st.session_state and st.session_state.saved_roadmaps:
-                        st.subheader("Your Saved Roadmaps")
-                        
-                        for skill, roadmap_data in st.session_state.saved_roadmaps.items():
-                            with st.expander(f"{skill} (Created: {roadmap_data['date_created']})"):
-                                st.markdown(roadmap_data["content"])
-                                
-                                if st.button("Delete Roadmap", key=f"del_roadmap_{skill}"):
-                                    del st.session_state.saved_roadmaps[skill]
-                                    st.success(f"Roadmap for {skill} deleted.")
-                                    st.rerun()
+                            except Exception as e:
+                                st.error(f"Error generating roadmap: {str(e)}")
+                                # Fallback to the basic roadmap generator
+                                roadmap = generate_skill_roadmap(st.session_state.user_skills, selected_skill, job_skills)
+                                display_roadmap(roadmap)
+                else:
+                    st.info("No significant skill gaps identified. Your skills align well with job market demands!")
+                    
+                # Show saved roadmaps if any
+                if "saved_roadmaps" in st.session_state and st.session_state.saved_roadmaps:
+                    st.subheader("Your Saved Roadmaps")
+                    
+                    for skill, roadmap_data in st.session_state.saved_roadmaps.items():
+                        with st.expander(f"{skill} (Created: {roadmap_data['date_created']})"):
+                            st.markdown(roadmap_data["content"])
+                            
+                            if st.button("Delete Roadmap", key=f"del_roadmap_{skill}"):
+                                del st.session_state.saved_roadmaps[skill]
+                                st.success(f"Roadmap for {skill} deleted.")
+                                st.rerun()
     
     # End of render_skill_graph_tab function
 
