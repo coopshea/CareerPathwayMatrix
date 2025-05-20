@@ -1,0 +1,61 @@
+import streamlit as st
+from typing import Dict, Any, List
+from openai import OpenAI  # or import your OpenAI wrapper
+import pandas as pd
+
+def render_ai_roadmap_tab(
+    user_data: Any,
+    pathways_df: pd.DataFrame,
+    metrics_data: Dict[str, Any],
+    selectbox,
+    file_uploader
+):
+    st.header("🤖 AI Career Roadmap")
+
+    # 1) Resume upload & preview
+    resume = user_data.resume_bytes
+    if not resume:
+        upload = file_uploader(
+            "Upload your resume (PDF/DOCX/TXT)", ["pdf","docx","txt"], key="ai_resume"
+        )
+        if upload:
+            user_data.resume_bytes = upload.read()
+            st.success("Resume saved.")
+            st.experimental_rerun()
+    else:
+        st.markdown("**Resume uploaded.**")
+
+    # 2) Questionnaire
+    st.subheader("Career Preferences")
+    q = user_data.questionnaire
+    q["years_exp"] = st.slider(
+        "Years of experience", 0, 30, q.get("years_exp",5), key="yrs_exp"
+    )
+    q["management"] = selectbox(
+        "Manager or IC?",
+        ["Individual contributor", "Manager", "Both"],
+        default=list(["Individual contributor","Manager","Both"]).index(q.get("management","Both")),
+        key="ai_mgmt"
+    )
+    user_data.questionnaire = q
+
+    # 3) Pathway selector
+    choices = pathways_df["name"].tolist()
+    sel = selectbox(
+        "Select a pathway", choices,
+        default=choices.index(user_data.selected_pathway) if user_data.selected_pathway in choices else 0,
+        key="ai_pathway"
+    )
+    user_data.selected_pathway = sel
+
+    # 4) Generate roadmap
+    if st.button("Generate Roadmap", key="ai_go"):
+        st.info("Generating… this may take a few seconds.")
+        client = OpenAI()
+        prompt = f"Build me a step-by-step roadmap for the {sel} career. Resume text:\n{user_data.resume_bytes[:500]}"
+        resp = client.chat.completions.create(
+            model="gpt-4o", messages=[{"role":"user","content":prompt}]
+        )
+        roadmap = resp.choices[0].message.content
+        st.markdown("### Your Personalized Roadmap")
+        st.write(roadmap)

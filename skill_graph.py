@@ -646,6 +646,10 @@ def analyze_project_for_skills(project_description, project_link=""):
     }
 
 
+def render_skill_graph_tab(user_data=None, selectbox=None):
+    """Render the skill graph tab with the provided user data"""
+    skill_graph_page()
+
 def skill_graph_page():
     """Streamlit page for the interactive skill graph and roadmap visualizations."""
     st.title("Career Skill Graph & Roadmap")

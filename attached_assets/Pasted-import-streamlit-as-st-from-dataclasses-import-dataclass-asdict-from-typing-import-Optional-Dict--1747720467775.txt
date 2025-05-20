@@ -1,0 +1,119 @@
+import streamlit as st
+from dataclasses import dataclass, asdict
+from typing import Optional, Dict, Any, List
+
+from data import load_data
+from visualizations import create_matrix_visualization
+from recommendations import calculate_pathway_matches
+from ai_roadmap import render_ai_roadmap_tab
+from job_postings_merged import render_job_postings_tab
+from skills_analysis import render_skills_analysis_tab
+from skill_graph import render_skill_graph_tab
+from utils import create_pathway_card, DEFAULT_IMAGES
+
+# 1) Central container for all user inputs & uploads
+@dataclass
+class UserData:
+    resume_bytes: Optional[bytes] = None
+    job_bytes: Optional[bytes] = None
+    portfolio_bytes: Optional[bytes] = None
+    questionnaire: Dict[str, Any] = None
+    selected_pathway: Optional[str] = None
+
+    def __post_init__(self):
+        if self.questionnaire is None:
+            self.questionnaire = {}
+
+if "user_data" not in st.session_state:
+    st.session_state.user_data = UserData()
+
+# 2) Widget factories to guarantee unique keys
+def sb(label: str, options: List[Any], default: int = 0, key: str = ""):
+    return st.selectbox(label, options, index=default, key=key)
+
+def fu(label: str, types: List[str], key: str):
+    return st.file_uploader(label, type=types, key=key)
+
+# 3) Load static data once
+@st.cache_data
+def load_all():
+    return load_data()
+
+pathways_df, metrics_data, categories = load_all()
+
+# 4) Page‐by‐page renderers
+def render_welcome_tab():
+    st.header("🚀 Welcome")
+    st.markdown("Use the tabs to explore your career pathway, upload resumes, and get AI roadmaps.")
+
+def render_portfolio_tab():
+    st.header("📂 Project Portfolio")
+    b = fu("Upload project doc/image", ["pdf","docx","txt","jpg","png"], key="portfolio_upload")
+    if b: 
+        st.session_state.user_data.portfolio_bytes = b.read()
+        st.success("Portfolio file saved.")
+
+def render_2x2_matrix_tab():
+    st.header("🔢 2×2 Matrix")
+    # Choose axes
+    x = sb("X‐Axis", list(metrics_data), key="matrix_x")
+    y = sb("Y‐Axis", list(metrics_data), key="matrix_y")
+    create_matrix_visualization(pathways_df, metrics_data, x, y)
+
+def render_find_pathway_tab():
+    st.header("🔍 Find Your Pathway")
+    # show cards
+    for _, row in pathways_df.iterrows():
+        create_pathway_card(row, key=f"path_{row.name}")
+
+def main():
+    st.set_page_config(page_title="CareerPath Navigator", layout="wide")
+    tabs = st.tabs([
+        "Welcome",
+        "Job & Resume Analysis",
+        "AI Roadmap",
+        "Skill Graph",
+        "Project Portfolio",
+        "2×2 Matrix",
+        "Find Your Pathway",
+        "About"
+    ])
+
+    with tabs[0]:
+        render_welcome_tab()
+
+    with tabs[1]:
+        render_job_postings_tab(st.session_state.user_data, sb, fu)
+
+    with tabs[2]:
+        render_ai_roadmap_tab(
+            user_data=st.session_state.user_data,
+            pathways_df=pathways_df,
+            metrics_data=metrics_data,
+            selectbox=sb,
+            file_uploader=fu
+        )
+
+    with tabs[3]:
+        render_skill_graph_tab(st.session_state.user_data, sb)
+
+    with tabs[4]:
+        render_portfolio_tab()
+
+    with tabs[5]:
+        render_2x2_matrix_tab()
+
+    with tabs[6]:
+        render_find_pathway_tab()
+
+    with tabs[7]:
+        st.header("ℹ️ About")
+        st.image(DEFAULT_IMAGES["data_viz_concept"], use_container_width=True)
+        st.write("""
+CareerPath Navigator is built on Streamlit.  
+Use the tabs above to interact with every feature.  
+Your uploads & questionnaire answers persist as you move between pages.
+""")
+
+if __name__ == "__main__":
+    main()

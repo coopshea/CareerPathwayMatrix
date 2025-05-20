@@ -211,6 +211,18 @@ def add_job_posting_to_session(pathway):
     except Exception as e:
         st.warning(f"Could not save job posting to database: {e}")
 
+def render_job_postings_tab(user_data=None, selectbox=None, file_uploader=None):
+    """
+    Render the job postings tab with the provided user data
+    
+    Args:
+        user_data: The user data object
+        selectbox: Function to create a selectbox
+        file_uploader: Function to create a file uploader
+    """
+    # For backward compatibility, call the existing implementation
+    job_posting_page(is_merged_view=True)
+
 def job_posting_page(pathways_df=None, metrics_data=None, is_merged_view=False):
     """
     Streamlit page for adding job postings and converting them to pathways.
