@@ -539,16 +539,11 @@ def get_quick_response(question):
     return "I can help you explore career paths, analyze skills, and create personalized roadmaps. For the best experience, I recommend filling out the questionnaire in the 'Find Your Pathway' tab and uploading your resume in the 'Skill Graph' tab. What would you like to do today?"
 
 # Create tabs
-tab_names = [
-    "Welcome", "2x2 Matrix", "Find Your Pathway", "Basic Roadmap", "AI Roadmap", 
-    "Job Posting", "Skills Analysis", "Skill Graph", "About"
-]
-
 # Initialize active tab if not already set
 if 'active_tab' not in st.session_state:
     st.session_state.active_tab = 0
 
-# Create a simpler tab set with better flow
+# Define tab names in the correct order
 tab_names = [
     "Welcome", "Job & Resume Analysis", "AI Roadmap", "Skill Graph", 
     "Project Portfolio", "2x2 Matrix", "Find Your Pathway", "About"
