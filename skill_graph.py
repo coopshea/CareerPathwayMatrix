@@ -663,6 +663,8 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
         resume_col1, resume_col2 = st.columns([2, 1])
         
         with resume_col1:
+            st.markdown("### 📄 Upload Resume")
+            st.markdown("Upload your resume to automatically extract your skills and experience. This helps create a more accurate skills profile.")
             resume_file = st.file_uploader("Upload your resume (PDF, DOCX, or TXT)", 
                                       type=["pdf", "docx", "txt"],
                                       key="skill_graph_resume_upload")
@@ -696,9 +698,15 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
                             
                         st.success("Resume processed successfully!")
                         
+                        # Show extracted text in expander
+                        with st.expander("View Extracted Text", expanded=False):
+                            st.text_area("Resume Content", resume_text, height=300, disabled=True)
+                        
                         # Store in session state
                         if user_data:
                             user_data.resume_bytes = file_content
+                        if "resume_text" not in st.session_state:
+                            st.session_state.resume_text = resume_text
                         
                         # Analyze resume for skills
                         with st.spinner("Extracting skills..."):
