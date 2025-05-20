@@ -656,7 +656,7 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
     skills_tab, graph_tab, roadmap_tab = st.tabs(["Skills Profile", "Skill Graph", "Skill Roadmap"])
     
     with skills_tab:
-        st.header("Skills Profile")
+        # No header, just the content
         st.write("Upload your resume and job descriptions to analyze your skills and match them with job requirements.")
         
         # Create two columns for resume and job posting analysis
@@ -1002,7 +1002,7 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
                             st.error(f"Error saving changes: {str(e)}")
     
     with graph_tab:
-        st.header("Skill Graph Visualization")
+        # No header, just the content
         st.write("Visualize your skills in relation to job requirements from the database.")
         
         if "user_skills" not in st.session_state or not st.session_state.user_skills:
@@ -1099,7 +1099,7 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
                     st.success("You have all the skills required by the job postings in the database!")
     
     with roadmap_tab:
-        st.header("Skill Learning Paths")
+        # No header, just the content
         st.write("Plan your learning journey to acquire important skills for your career.")
         
         if "user_skills" not in st.session_state or not st.session_state.user_skills:

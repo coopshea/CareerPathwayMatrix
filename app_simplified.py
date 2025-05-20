@@ -51,18 +51,14 @@ def render_welcome_tab():
     
     **CareerPath Navigator** is designed for professionals just like you - helping you bridge the gap between 
     where you are now and where you want to be.
-    
-    ### How to Use This App:
-    
-    1. **Analyze** your current skills and job requirements with the **Skill Graph** tab
-    2. **Plan** your journey with the **AI Roadmap** tab
-    3. **Showcase** your work in the **Project Portfolio** tab
-    4. **Explore** career pathways using the **2×2 Matrix** tab
-    5. **Discover** matching careers in the **Find Your Pathway** tab
-    
-    Every journey begins with a single step. Use the tabs above to navigate through the features or ask our 
-    AI assistant below for personalized guidance.
     """)
+    
+    # Video tutorial/introduction
+    st.subheader("Watch the tutorial")
+    # URL can be YouTube, Vimeo, or a direct video file
+    # For demo purposes, using a placeholder YouTube URL until the actual video is recorded
+    video_url = "https://youtu.be/B2iAodr0fOo"  # Replace with actual video when available
+    st.video(video_url)
     
     # AI chat assistant
     st.markdown("---")
