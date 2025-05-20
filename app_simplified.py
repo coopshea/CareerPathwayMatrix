@@ -41,15 +41,14 @@ pathways_df, metrics_data, categories = load_all()
 
 # 4) Page‐by‐page renderers
 def render_welcome_tab():
-    st.header("🚀 Welcome to CareerPath Navigator")
-    
+
     # Motivational introduction
     st.markdown("""
     ### Finding Your Path Forward
     
     Feeling stuck in your current role? Excited about exploring a new industry but not sure where to start? 
     
-    **CareerPath Navigator** is designed for professionals just like you - helping you bridge the gap between 
+    **CareerPath Navigator** is designed to bridge the gap between 
     where you are now and where you want to be.
     """)
     
@@ -385,6 +384,7 @@ def main():
         "2×2 Matrix",
         "Find Your Pathway",
         "AI Roadmap",
+        "Interview Coach",
         "About"
     ])
 
@@ -416,6 +416,12 @@ def main():
         st.write("Premium features coming soon!")
 
     with tabs[6]:
+        # Simple text premium feature message
+        st.header("Interview Coach - Premium Feature")
+        st.write("This premium feature helps you prepare for interviews using AI-powered practice sessions tailored to your target roles.")
+        st.write("Premium features coming soon!")
+        
+    with tabs[7]:
         st.header("ℹ️ About")
         st.markdown("""
         ### About CareerPath Navigator
