@@ -102,8 +102,8 @@ def render_find_pathway_tab():
                 key=f"imp_{metric_id}"
             )
             
-            # Store the values
-            user_preferences[metric_id] = {"value": preference, "range": [max(1, preference-1), min(10, preference+1)]}
+            # Store the values - use format expected by calculate_pathway_matches
+            user_preferences[metric_id] = [max(1, preference-1), min(10, preference+1)]
             importance_weights[metric_id] = importance
             
             metric_count += 1
