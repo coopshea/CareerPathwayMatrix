@@ -1158,21 +1158,19 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
                 # Allow user to select skills or use the multiselect
                 if selected_skills:
                     st.success(f"You've selected {len(selected_skills)} skills for your learning path.")
-                
-                generate_button = st.button("Generate Optimized Learning Path", key="generate_ai_path")
-                
-                if generate_button:
+                    
+                if st.button("Generate Optimized Learning Path", key="generate_ai_path"):
                     with st.spinner("Creating your personalized skill roadmap..."):
-                        # Get skills for analysis - either selected or top skills if none selected
-                        target_skills = selected_skills
-                        if not target_skills and missing_skills:
-                            target_skills = [s['name'] for s in missing_skills[:5]]
-                            st.info(f"Using top 5 in-demand skills since none were specifically selected.")
-                        
-                        if not target_skills:
-                            st.warning("No skills identified for learning. Please select skills or upload job postings first.")
-                        else:
-                            try:
+                        try:
+                            # Get skills for analysis - either selected or top skills if none selected
+                            target_skills = selected_skills
+                            if not target_skills and missing_skills:
+                                target_skills = [s['name'] for s in missing_skills[:5]]
+                                st.info(f"Using top 5 in-demand skills since none were specifically selected.")
+                            
+                            if not target_skills:
+                                st.warning("No skills identified for learning. Please select skills or upload job postings first.")
+                            else:
                                 # Create a prompt for the OpenAI API with comprehensive context
                                 skills_importance = []
                                 for name, freq, skill_type in ranked_skills[:20]:  # Top 20 skills for context
@@ -1189,17 +1187,14 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
                                 target_skills_with_info = []
                                 for skill in target_skills:
                                     # Find skill in ranked list
-                                    skill_found = False
                                     for name, freq, skill_type in ranked_skills:
                                         if name.lower() == skill.lower():
                                             importance = "required" if skill_type == "required" else "preferred" if skill_type == "preferred" else "general"
                                             target_skills_with_info.append(f"{name} (appears in {freq} job postings, {importance})")
-                                            skill_found = True
                                             break
-                                    if not skill_found:
+                                    else:
                                         target_skills_with_info.append(skill)
                                 
-                                # Create the prompt for the AI model
                                 prompt = f"""
                                 You are an expert career and skills development advisor creating a personalized learning plan.
                                 
@@ -1254,8 +1249,7 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
                                     st.markdown(roadmap_content)
                                     
                                     # Add option to save this roadmap
-                                    save_button = st.button("Save This Learning Plan")
-                                    if save_button:
+                                    if st.button("Save This Learning Plan"):
                                         if "saved_roadmaps" not in st.session_state:
                                             st.session_state.saved_roadmaps = {}
                                         
@@ -1269,15 +1263,16 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
                                         st.session_state.saved_roadmaps[roadmap_name] = {
                                             "content": roadmap_content,
                                             "date_created": datetime.now().strftime("%Y-%m-%d"),
-                                            "skills": target_skills
+                                            "skills": target_skills,
+                                            "skill_importance": {skill: freq for skill, freq, _ in ranked_skills if skill in target_skills}
                                         }
                                         
                                         st.success(f"Learning plan saved successfully!")
                                 else:
                                     st.error("Could not generate learning plan. Please try again later.")
-                            except Exception as e:
-                                st.error(f"Error generating learning plan: {str(e)}")
-                                st.info("Please check your internet connection or try again later.")
+                        except Exception as e:
+                            st.error(f"Error generating learning plan: {str(e)}")
+                            st.info("Please check your internet connection or try again later.")
                 
                 # Show saved roadmaps if any
                 if "saved_roadmaps" in st.session_state and st.session_state.saved_roadmaps:
