@@ -66,6 +66,81 @@ def render_welcome_tab():
     # AI chat assistant
     st.markdown("---")
     st.markdown("### Not sure where to start? Ask our AI Career Assistant")
+    
+    # Initialize chat messages if not already in session state
+    if "messages" not in st.session_state:
+        st.session_state.messages = [
+            {"role": "assistant", "content": "Hello! I'm your AI career assistant. How can I help you today?"}
+        ]
+    
+    # Display chat messages from history on app rerun
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+    
+    # Accept user input
+    if prompt := st.chat_input("What would you like to know about your career options?"):
+        # Add user message to chat history
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        # Display user message in chat message container
+        with st.chat_message("user"):
+            st.markdown(prompt)
+        
+        # Display assistant response in chat message container
+        with st.chat_message("assistant"):
+            response_placeholder = st.empty()
+            
+            try:
+                # Get API key if available
+                import os
+                api_key = os.environ.get("OPENAI_API_KEY")
+                
+                if api_key:
+                    from openai import OpenAI
+                    
+                    # Create OpenAI client
+                    client = OpenAI(api_key=api_key)
+                    
+                    # System message for the chat context
+                    messages = [
+                        {"role": "system", "content": """You are a helpful career assistant in the CareerPath Navigator application. 
+                        Guide users to use different features:
+                        - 2x2 Matrix: For comparing career paths visually
+                        - Find Your Pathway: For matching preferences to careers
+                        - AI Roadmap: For generating personalized roadmaps
+                        - Job Posting: For analyzing job opportunities
+                        - Skill Graph: For analyzing user skills and gaps
+                        
+                        Keep responses friendly, concise and helpful."""}
+                    ]
+                    
+                    # Add the conversation history
+                    for message in st.session_state.messages:
+                        messages.append({"role": message["role"], "content": message["content"]})
+                    
+                    # Generate a response
+                    response = client.chat.completions.create(
+                        model="gpt-4o", 
+                        messages=messages,
+                        temperature=0.7,
+                        max_tokens=500
+                    )
+                    
+                    full_response = response.choices[0].message.content
+                    
+                else:
+                    # Fallback response if no API key
+                    full_response = "I'm here to help you navigate your career options! You can explore different paths in the tabs above, or ask me specific questions about career transitions, skill development, or job hunting strategies."
+                
+            except Exception as e:
+                full_response = f"I'm here to help with career guidance. What specific aspect of your career journey would you like to explore today?"
+                print(f"Error generating AI response: {str(e)}")
+            
+            # Display the response
+            response_placeholder.markdown(full_response)
+            
+            # Add assistant response to chat history
+            st.session_state.messages.append({"role": "assistant", "content": full_response})
 
 def render_portfolio_tab():
     st.header("📂 Project Portfolio")
