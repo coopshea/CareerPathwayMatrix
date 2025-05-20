@@ -1125,42 +1125,60 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
                     # Use top missing skills as options
                     skill_options = [s['name'] for s in missing_skills[:15]]
                 
-                # Let user select a skill to learn
-                selected_skill = st.selectbox(
-                    "Select a skill you want to learn",
+                # Let user select multiple skills to learn
+                selected_skills = st.multiselect(
+                    "Select skills you want to learn",
                     options=skill_options
                 )
                 
-                if selected_skill:
-                    # Generate a roadmap for the selected skill
-                    roadmap = generate_skill_roadmap(
-                        st.session_state.user_skills, 
-                        selected_skill,
-                        job_skills
-                    )
-                    
-                    # Display the roadmap
-                    display_roadmap(roadmap)
+                # Add an auto-path button for top 3 skills
+                if st.button("Create Auto-Path for Top 3 In-Demand Skills"):
+                    if missing_skills and len(missing_skills) >= 3:
+                        selected_skills = [s['name'] for s in missing_skills[:3]]
+                        st.success(f"Selected top 3 in-demand skills: {', '.join(selected_skills)}")
+                    else:
+                        st.warning("Not enough skills data to create an auto-path. Please upload more job postings.")
+                
+                # Display roadmaps for each selected skill
+                if selected_skills:
+                    for idx, skill in enumerate(selected_skills):
+                        st.write(f"## Learning Path for: {skill}")
+                        
+                        # Generate a roadmap for this skill
+                        roadmap = generate_skill_roadmap(
+                            st.session_state.user_skills, 
+                            skill,
+                            job_skills
+                        )
+                        
+                        # Display the roadmap
+                        display_roadmap(roadmap)
+                        
+                        # Add separator between skills
+                        if idx < len(selected_skills) - 1:
+                            st.write("---")
                     
                     # Add AI-generated roadmap option using GPT
                     st.write("---")
                     st.subheader("Generate Detailed Learning Path")
-                    st.write("Use AI to create a personalized learning path for this skill.")
+                    st.write("Use AI to create a personalized learning path for your selected skills.")
                     
                     if st.button("Generate AI Learning Path", key="generate_ai_path"):
                         with st.spinner("Generating personalized learning path..."):
                             try:
                                 # Create a prompt for the OpenAI API
+                                skills_list = ", ".join(selected_skills)
                                 prompt = f"""
-                                I want to develop the skill '{selected_skill}' for my career growth.
+                                I want to develop the following skills for my career growth: {skills_list}.
                                 My current skills are: {', '.join(st.session_state.user_skills.keys())}.
                                 
                                 Please create a detailed learning roadmap with:
                                 1. Recommended prerequisites (if any)
                                 2. Specific learning resources (courses, books, tutorials)
-                                3. Projects to build for applying this skill
+                                3. Projects to build for applying these skills
                                 4. Estimated timeline for skill development
-                                5. How this skill connects to my existing skills
+                                5. How these skills connect to my existing skills
+                                6. A suggested order for learning these skills
                                 
                                 Format the response in a clear, structured way with headings and bullet points.
                                 """
@@ -1191,21 +1209,30 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
                                         if "saved_roadmaps" not in st.session_state:
                                             st.session_state.saved_roadmaps = {}
                                         
-                                        st.session_state.saved_roadmaps[selected_skill] = {
+                                        roadmap_name = f"Multi-Skill Path: {', '.join(selected_skills[:2])}"
+                                        if len(selected_skills) > 2:
+                                            roadmap_name += f" +{len(selected_skills)-2} more"
+                                            
+                                        st.session_state.saved_roadmaps[roadmap_name] = {
                                             "content": roadmap_content,
-                                            "date_created": datetime.now().strftime("%Y-%m-%d")
+                                            "date_created": datetime.now().strftime("%Y-%m-%d"),
+                                            "skills": selected_skills
                                         }
                                         
-                                        st.success(f"Roadmap for {selected_skill} saved successfully!")
+                                        st.success(f"Roadmap for multiple skills saved successfully!")
                                 else:
-                                    # Fallback to a simpler roadmap
-                                    roadmap = generate_skill_roadmap(st.session_state.user_skills, selected_skill, job_skills)
-                                    display_roadmap(roadmap)
+                                    st.error("Could not generate AI roadmap. Try again later.")
+                                    # Show individual roadmaps for each skill as a fallback
+                                    for skill in selected_skills[:1]:  # Just show first skill as fallback
+                                        roadmap = generate_skill_roadmap(st.session_state.user_skills, skill, job_skills)
+                                        display_roadmap(roadmap)
                             except Exception as e:
                                 st.error(f"Error generating roadmap: {str(e)}")
-                                # Fallback to the basic roadmap generator
-                                roadmap = generate_skill_roadmap(st.session_state.user_skills, selected_skill, job_skills)
-                                display_roadmap(roadmap)
+                                # Fallback to the basic roadmap generator for first skill only
+                                if selected_skills:
+                                    first_skill = selected_skills[0]
+                                    roadmap = generate_skill_roadmap(st.session_state.user_skills, first_skill, job_skills)
+                                    display_roadmap(roadmap)
                 else:
                     st.info("No significant skill gaps identified. Your skills align well with job market demands!")
                     
