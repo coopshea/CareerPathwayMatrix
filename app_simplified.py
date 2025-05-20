@@ -5,6 +5,9 @@ st.set_page_config(page_title="CareerPath Navigator", layout="wide")
 
 from dataclasses import dataclass, asdict, field
 from typing import Optional, Dict, Any, List
+import time
+import os
+from openai import OpenAI
 
 from data import load_data
 from visualizations import create_matrix_visualization
@@ -38,10 +41,313 @@ def load_all():
 
 pathways_df, metrics_data, categories = load_all()
 
+# AI Chat Assistant Implementation
+def render_ai_chat_assistant():
+    st.write("### AI Career Assistant")
+    
+    # Show disclaimer
+    st.markdown("""
+    ℹ️ **Disclaimer**
+    
+    This AI assistant can provide guidance about CareerPath Navigator features and career advice.
+    It has a limit of 10 messages per session to ensure fair usage.
+    """)
+    
+    # Add caveat below the chat assistant
+    st.warning("**FUNCTIONAL PROTOTYPE** - This application demonstrates core functionality (AI integration, skills extraction, etc). UI/UX design is not finalized.")
+    
+    # Initialize message counter
+    if 'message_count' not in st.session_state:
+        st.session_state.message_count = 0
+        st.session_state.last_reset_time = time.time()
+    
+    # Initialize reflective questions sequence
+    if "reflective_questions" not in st.session_state:
+        st.session_state.reflective_questions = [
+            "What are your biggest strengths professionally? Think about what others consistently praise you for.",
+            "Which skills do you most enjoy using in your work or projects?",
+            "What aspects of your current or past roles have felt most meaningful to you?",
+            "Imagine your ideal workday - what activities would you be doing?",
+            "What values are most important to you in your work environment?",
+            "What obstacles seem to consistently appear in your career path?",
+            "If resources and time weren't factors, what career path would you pursue?",
+            "What specific impact do you want to make through your work?"
+        ]
+        st.session_state.current_reflective_q = 0
+        st.session_state.reflective_mode = False
+        st.session_state.reflective_responses = {}
+    
+    # Check if 30 minutes have passed since the last reset
+    current_time = time.time()
+    if current_time - st.session_state.last_reset_time > 1800:  # 1800 seconds = 30 minutes
+        st.session_state.message_count = 0
+        st.session_state.last_reset_time = current_time
+    
+    # Display remaining messages counter
+    remaining_messages = max(0, 10 - st.session_state.message_count)
+    if remaining_messages < 3:
+        st.warning(f"**Rate limit:** {remaining_messages}/10 messages left for this session. Resets in {30 - int((current_time - st.session_state.last_reset_time)/60)} minutes.")
+    else:
+        st.info(f"**Messages remaining:** {remaining_messages}/10 for this session. Resets every 30 minutes.")
+    
+    # Option to start reflective journey
+    if not st.session_state.reflective_mode:
+        if st.button("Start Career Reflection Journey", key="start_reflection"):
+            st.session_state.reflective_mode = True
+            # Add the first reflection question as an assistant message
+            first_question = st.session_state.reflective_questions[0]
+            if 'messages' not in st.session_state:
+                st.session_state.messages = []
+            st.session_state.messages.append({"role": "assistant", "content": f"**Career Reflection:** {first_question}"})
+            st.rerun()
+    
+    # Initialize chat messages if not already in session state
+    if "messages" not in st.session_state:
+        # Create a greeting message
+        st.session_state.messages = [
+            {"role": "assistant", "content": "Hello! I'm your AI career assistant. To get the most out of CareerPath Navigator, I recommend:\n\n1. Fill out the career preferences questionnaire in the 'Find Your Pathway' tab\n2. Upload your resume in the 'Skill Graph' tab for skill analysis\n3. Return here for personalized career guidance based on your profile\n\nHow can I help you today?"}
+        ]
+    
+    # Display chat messages from history on app rerun
+    if 'messages' in st.session_state:
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
+    
+    # Accept user input
+    if prompt := st.chat_input("Share your thoughts or ask a question..."):
+        # Check rate limit
+        if st.session_state.message_count >= 10:
+            with st.chat_message("assistant"):
+                st.error("You've reached the maximum number of messages for this session. Please wait for the rate limit to reset.")
+            return
+        
+        # Add user message to chat history
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        
+        # Display user message in chat message container
+        with st.chat_message("user"):
+            st.markdown(prompt)
+        
+        # Increment message counter
+        st.session_state.message_count += 1
+        
+        # Handle the response differently based on mode
+        if st.session_state.reflective_mode:
+            # Save the response to the session state
+            try:
+                # Get the current question
+                current_q = st.session_state.reflective_questions[st.session_state.current_reflective_q]
+                
+                # Store the response
+                st.session_state.reflective_responses[current_q] = prompt
+                
+                # Move to the next question
+                st.session_state.current_reflective_q += 1
+                
+                # Create a placeholder for the assistant's response
+                with st.chat_message("assistant"):
+                    response_placeholder = st.empty()
+                    
+                    # If there are more questions, ask the next one
+                    if st.session_state.current_reflective_q < len(st.session_state.reflective_questions):
+                        next_q = st.session_state.reflective_questions[st.session_state.current_reflective_q]
+                        response = f"Thank you for sharing that. Let's continue with another reflection: **{next_q}**"
+                    else:
+                        # End of reflective questions
+                        response = "Thank you for completing the career reflection! I've recorded your responses, which will help personalize your career guidance. Is there anything specific you'd like to explore now based on your reflections?"
+                        st.session_state.reflective_mode = False
+                        
+                    # Display the response
+                    response_placeholder.markdown(response)
+                
+                # Add assistant response to chat history
+                st.session_state.messages.append({"role": "assistant", "content": response})
+                
+            except Exception as e:
+                with st.chat_message("assistant"):
+                    response = f"I appreciate your response. There was a technical issue, but we can continue our conversation. What else would you like to discuss about your career journey?"
+                    st.markdown(response)
+                st.session_state.messages.append({"role": "assistant", "content": response})
+                print(f"Error in reflective mode: {e}")
+        else:
+            # Normal chat mode - process the user's question
+            with st.chat_message("assistant"):
+                response_placeholder = st.empty()
+                
+                # Stream the response from API
+                full_response = stream_ai_response(prompt, response_placeholder)
+                
+            # Add assistant response to chat history
+            st.session_state.messages.append({"role": "assistant", "content": full_response})
+    
+    # Add controls for reflective mode
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("Clear Chat", key="clear_chat"):
+            st.session_state.messages = []
+            st.session_state.current_reflective_q = 0
+            st.session_state.reflective_mode = False
+            st.session_state.reflective_responses = {}
+            st.rerun()
+    
+    with col2:
+        if not st.session_state.reflective_mode and st.button("New Reflection", key="new_reflection"):
+            st.session_state.current_reflective_q = 0
+            st.session_state.reflective_mode = True
+            # Add the first reflection question
+            first_question = st.session_state.reflective_questions[0]
+            st.session_state.messages.append({"role": "assistant", "content": f"**Career Reflection:** {first_question}"})
+            st.rerun()
+
+# Stream AI-powered response with word-by-word display
+def stream_ai_response(question, placeholder):
+    """Generate and stream an AI-powered response using OpenAI API"""
+    # Handle None case
+    if question is None:
+        default_response = "I can help you explore different career paths and develop your skills. What would you like to know?"
+        placeholder.markdown(default_response)
+        return default_response
+        
+    try:
+        # Get the API key from environment variable
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            fallback = "I couldn't access the OpenAI API key. Please provide a valid API key to enable AI-powered responses."
+            placeholder.markdown(fallback)
+            return fallback
+        
+        # Create OpenAI client
+        client = OpenAI(api_key=api_key)
+        
+        # System message for the chat context
+        system_message = """You are a helpful career assistant in the CareerPath Navigator application. 
+        You should encourage users to:
+        1. Fill out the career preferences questionnaire in the 'Find Your Pathway' tab
+        2. Upload their resume in the 'Skill Graph' tab for skill analysis
+        3. Return to chat for personalized guidance based on their profile
+        
+        You can guide users to different features:
+        - 2x2 Matrix (tab 5): For comparing career paths visually
+        - Find Your Pathway (tab 6): For matching preferences to careers
+        - AI Roadmap (tab 2): For generating AI-powered personalized roadmaps
+        - Job & Resume Analysis (tab 1): For analyzing job opportunities
+        - Skill Graph (tab 3): For analyzing user skills and gaps
+        - Project Portfolio (tab 4): For managing projects
+        
+        Keep responses friendly, concise and helpful. Always recommend the appropriate tool
+        based on what the user is trying to accomplish.
+        """
+        
+        # Convert and stream the response
+        full_response = ""
+        response = client.chat.completions.create(
+            model="gpt-4o",  # Using the latest model
+            messages=[
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": question}
+            ],
+            stream=True
+        )
+        
+        # Process the streaming response
+        for chunk in response:
+            if chunk.choices[0].delta.content:
+                content = chunk.choices[0].delta.content
+                full_response += content
+                placeholder.markdown(full_response + "▌")
+        
+        # Display final response
+        placeholder.markdown(full_response)
+        return full_response
+        
+    except Exception as e:
+        # Fallback response for errors
+        error_response = f"I'm having trouble generating a response right now. Please try again later. Error: {str(e)}"
+        placeholder.markdown(error_response)
+        return error_response
+
+# Function to provide quick responses based on keywords (backup if AI fails)
+def get_quick_response(question):
+    """Provide quick responses based on keywords for low latency"""
+    question = question.lower()
+    
+    if "hello" in question or "hi" in question:
+        return "Hello! How can I help with your career development today?"
+    
+    if "thank" in question:
+        return "You're welcome! Feel free to ask if you have any other questions."
+    
+    if any(word in question for word in ["resume", "cv"]):
+        return "You can upload your resume in the 'Job & Resume Analysis' tab to get personalized insights about your skills and experience."
+    
+    if any(word in question for word in ["job", "posting", "opportunity"]):
+        return "To analyze job postings, head to the 'Job & Resume Analysis' tab where you can paste job descriptions or enter URLs to extract requirements and match them against your skills."
+    
+    if any(word in question for word in ["roadmap", "plan", "next steps"]):
+        return "For a personalized career roadmap, check the 'AI Roadmap' tab. You can select a pathway and get AI-generated steps to achieve your goals."
+    
+    if any(word in question for word in ["skill", "expertise", "abilities"]):
+        return "The 'Skill Graph' tab will analyze your skills, identify gaps, and suggest improvements based on job market demands."
+    
+    if any(word in question for word in ["compare", "matrix", "options"]):
+        return "Use the '2x2 Matrix' tab to visually compare different career pathways based on metrics that matter to you."
+    
+    if any(word in question for word in ["pathway", "route", "career path"]):
+        return "The 'Find Your Pathway' tab helps match your preferences to potential career paths. Fill out the questionnaire to see personalized recommendations."
+    
+    # Default response
+    return "I'm here to help with your career development. You can explore different pathways, analyze job postings, create roadmaps, and more. What would you like to focus on today?"
+
 # 4) Page‐by‐page renderers
 def render_welcome_tab():
-    st.header("🚀 Welcome")
-    st.markdown("Use the tabs to explore your career pathway, upload resumes, and get AI roadmaps.")
+    st.header("🚀 Welcome to CareerPath Navigator")
+    st.markdown("Use the buttons below or the tabs above to navigate the app:")
+    
+    # Button grid - 3x2 layout
+    st.write("")  # Add some space at the top
+    
+    # Create 3 rows of 2 buttons each
+    row1 = st.columns(2)
+    with row1[0]:
+        if st.button("📊 Compare Career Paths", use_container_width=True, key="btn_matrix"):
+            st.session_state.active_tab = 5  # 2x2 Matrix tab
+            st.rerun()
+    
+    with row1[1]:
+        if st.button("💡 Find Matching Careers", use_container_width=True, key="btn_pathway"):
+            st.session_state.active_tab = 6  # Find Your Pathway tab
+            st.rerun()
+    
+    row2 = st.columns(2)
+    with row2[0]:
+        if st.button("🧩 Analyze My Skills", use_container_width=True, key="btn_skills"):
+            st.session_state.active_tab = 3  # Skill Graph tab
+            st.rerun()
+    
+    with row2[1]:
+        if st.button("🛣️ Create Career Roadmap", use_container_width=True, key="btn_roadmap"):
+            st.session_state.active_tab = 2  # AI Roadmap tab
+            st.rerun()
+    
+    row3 = st.columns(2)
+    with row3[0]:
+        if st.button("🔍 Analyze Job Posting", use_container_width=True, key="btn_job"):
+            st.session_state.active_tab = 1  # Job & Resume Analysis tab
+            st.rerun()
+    
+    with row3[1]:
+        if st.button("📈 Manage Portfolio", use_container_width=True, key="btn_portfolio"):
+            st.session_state.active_tab = 4  # Project Portfolio tab
+            st.rerun()
+            
+    # AI chat assistant below the buttons
+    st.markdown("---")
+    st.markdown("### Not sure where to start?")
+    
+    # AI chat assistant
+    render_ai_chat_assistant()
 
 def render_portfolio_tab():
     st.header("📂 Project Portfolio")
