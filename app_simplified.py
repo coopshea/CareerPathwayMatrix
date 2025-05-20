@@ -417,7 +417,16 @@ def main():
 
     with tabs[6]:
         st.header("ℹ️ About")
-        st.image(DEFAULT_IMAGES["data_viz_concept"], use_container_width=True)
+        st.markdown("""
+        ### About CareerPath Navigator
+        
+        CareerPath Navigator is a career development platform designed to help professionals 
+        visualize their career progression, identify skill gaps, and create personalized 
+        learning plans.
+        
+        This application combines skills analysis, personal portfolio building, and AI-powered 
+        roadmap generation to support your professional growth journey.
+        """)
         st.write("""
         CareerPath Navigator is built on Streamlit.  
         Use the tabs above to interact with every feature.  
