@@ -63,6 +63,36 @@ def render_welcome_tab():
     st.markdown("---")
     st.markdown("### Not sure where to start? Ask our AI Career Assistant")
     
+    # Add data reset functionality
+    st.markdown("---")
+    st.subheader("Reset Your Data")
+    st.write("If you want to start fresh or remove your personal data, you can reset the application data here.")
+    
+    reset_col1, reset_col2 = st.columns([3, 1])
+    with reset_col1:
+        st.warning("This will clear all your skills, uploaded files, and saved learning plans. This cannot be undone.")
+    with reset_col2:
+        if st.button("Reset All Data"):
+            # Remove all session state data except for necessary app state
+            keys_to_preserve = ['data_loaded', '_is_running', '_current_tab']
+            
+            # Get all current keys
+            all_keys = list(st.session_state.keys())
+            
+            # Clear all user data
+            for key in all_keys:
+                if key not in keys_to_preserve:
+                    try:
+                        del st.session_state[key]
+                    except:
+                        pass
+            
+            # Reinitialize the user_data object
+            st.session_state.user_data = UserData()
+            
+            st.success("All data has been reset! The page will refresh momentarily.")
+            st.rerun()
+    
     # Initialize chat messages if not already in session state
     if "messages" not in st.session_state:
         st.session_state.messages = [
@@ -381,6 +411,7 @@ def main():
         "Welcome",
         "Skill Graph",
         "Project Portfolio", 
+        "Job Tracker",
         "2×2 Matrix",
         "Find Your Pathway",
         "AI Roadmap",
@@ -398,6 +429,22 @@ def main():
         render_portfolio_tab()
 
     with tabs[3]:
+        # Job Tracker tab as Premium Feature
+        st.header("Job Tracker - Premium Feature")
+        st.write("Track your job applications, interviews, and follow-ups in one place.")
+        
+        # Display description of future functionality
+        st.info("""
+        **Coming Soon with Premium Features:** 
+        - Automated job application tracking through Gmail integration
+        - Chrome extension for one-click job application capture
+        - Status tracking and reminders for follow-ups
+        - Interview preparation linked to specific applications
+        """)
+        
+        st.write("Premium features coming soon!")
+    
+    with tabs[4]:
         # Simple text premium feature message
         st.header("2×2 Matrix - Premium Feature")
         st.write("This premium feature helps you compare different career paths based on key metrics.")
