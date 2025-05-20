@@ -1,5 +1,9 @@
 import streamlit as st
-from dataclasses import dataclass, asdict
+
+# Set page config at the very beginning
+st.set_page_config(page_title="CareerPath Navigator", layout="wide")
+
+from dataclasses import dataclass, asdict, field
 from typing import Optional, Dict, Any, List
 
 from data import load_data
@@ -14,7 +18,7 @@ class UserData:
     resume_bytes: Optional[bytes] = None
     job_bytes: Optional[bytes] = None
     portfolio_bytes: Optional[bytes] = None
-    questionnaire: Dict[str, Any] = {}
+    questionnaire: Dict[str, Any] = field(default_factory=dict)
     selected_pathway: Optional[str] = None
 
 if "user_data" not in st.session_state:
@@ -383,7 +387,6 @@ def render_skill_graph_tab():
     skill_graph_page()
 
 def main():
-    st.set_page_config(page_title="CareerPath Navigator", layout="wide")
     
     # Main header
     st.markdown("""

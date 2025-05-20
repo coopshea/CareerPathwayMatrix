@@ -10,6 +10,10 @@ from datetime import datetime
 # Utility functions for creating widgets with unique keys
 def create_selectbox(label, options, default_index=0, tab_name="ai_roadmap", widget_name="selector", format_func=None):
     """Create a selectbox with a unique key based on tab and widget name"""
+    # If format_func is None, use a default identity function
+    if format_func is None:
+        format_func = lambda x: x
+        
     return st.selectbox(
         label,
         options,
