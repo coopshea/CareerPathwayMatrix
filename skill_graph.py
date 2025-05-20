@@ -731,102 +731,121 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
         
         with col2:
             st.markdown("### 💼 Analyze Job Posting")
-            st.markdown("Enter a job description to identify required skills. This helps compare your skills to job requirements.")
+            st.write("Enter a job description to identify required skills")
             
-            # Job posting input
-            job_text = st.text_area("Paste job description text here:", height=150, key="job_text_skills_tab")
-            job_url = st.text_input("Or enter job posting URL:", key="job_url_skills_tab")
+            # Text area for job description
+            job_text = st.text_area("Paste job description here", height=150, key="job_text_area")
             
-            if st.button("Extract Job Skills", key="extract_job_skills_btn"):
+            # Or URL input
+            job_url = st.text_input("Or enter job posting URL", key="job_url_input")
+            
+            # Process button
+            if st.button("Analyze Job Description", key="analyze_job_btn"):
                 if not job_text and not job_url:
                     st.warning("Please enter a job description or URL.")
                 else:
-                    with st.spinner("Analyzing job requirements..."):
-                        # Import needed functions
-                        from job_postings_merged import analyze_job_posting, get_website_text_content
-                        
-                        # Get job text from URL if provided
-                        if job_url and not job_text:
-                            try:
-                                job_text = get_website_text_content(job_url)
-                                st.success(f"Successfully extracted content from URL")
-                            except Exception as e:
-                                st.error(f"Error extracting content from URL: {str(e)}")
-                        
-                        if job_text:
-                            try:
-                                # Analyze job posting
-                                job_data = analyze_job_posting(job_text)
-                                
-                                # Store in session state
-                                if "job_postings" not in st.session_state:
-                                    st.session_state.job_postings = []
-                                
-                                # Add to job postings list if it's not already there
-                                if job_data not in st.session_state.job_postings:
-                                    st.session_state.job_postings.append(job_data)
-                                    
-                                    # Update user data if available
-                                    if user_data:
-                                        user_data.job_bytes = job_text.encode('utf-8')
-                                
-                                # Show extracted text in expander
-                                with st.expander("View Job Text", expanded=False):
-                                    st.text_area("Job Description", job_text, height=300, disabled=True)
-                                
-                                # Display results
-                                st.subheader("Job Skills Analysis")
-                                
-                                # Job title and company
-                                st.markdown(f"**Position:** {job_data.get('title', 'Unknown')}")
-                                st.markdown(f"**Company:** {job_data.get('company', 'Unknown')}")
-                                
-                                # Create columns for requirements
-                                req_col1, req_col2 = st.columns(2)
-                                
-                                with req_col1:
-                                    st.markdown("**Required Skills:**")
-                                    required_skills = job_data.get('required_skills', [])
-                                    for skill in required_skills:
-                                        # Check if user has this skill
-                                        if "user_skills" in st.session_state and skill in st.session_state.user_skills:
-                                            st.markdown(f"- ✅ {skill}")
-                                        else:
-                                            st.markdown(f"- ❌ {skill}")
-                                
-                                with req_col2:
-                                    st.markdown("**Preferred Skills:**")
-                                    preferred_skills = job_data.get('preferred_skills', [])
-                                    for skill in preferred_skills:
-                                        # Check if user has this skill
-                                        if "user_skills" in st.session_state and skill in st.session_state.user_skills:
-                                            st.markdown(f"- ✅ {skill}")
-                                        else:
-                                            st.markdown(f"- ❌ {skill}")
-                                
-                                # Option to add missing skills to user profile
-                                if st.button("Add Missing Skills to Your Profile", key="add_missing_skills_btn"):
-                                    if "user_skills" not in st.session_state:
-                                        st.session_state.user_skills = {}
-                                    
-                                    user_skill_names = set(st.session_state.user_skills.keys())
-                                    job_skill_names = set(required_skills + preferred_skills)
-                                    
-                                    if job_skill_names:
-                                        missing_skills = job_skill_names - user_skill_names
-                                        for skill in missing_skills:
-                                            if skill not in st.session_state.user_skills:
-                                                st.session_state.user_skills[skill] = {
-                                                    "rating": 1,  # Low initial rating
-                                                    "experience": f"Added from job: {job_data.get('title', 'Unknown')}",
-                                                    "projects": []
-                                                }
-                                        
-                                        st.success(f"Added {len(missing_skills)} new skills to your profile!")
-                                        st.rerun()
+                    with st.spinner("Analyzing job description..."):
+                        try:
+                            # Import analyze_job_posting and get_website_text_content functions
+                            import importlib.util
+                            import sys
                             
-                            except Exception as e:
-                                st.error(f"Error analyzing job posting: {str(e)}")
+                            # Try to import the job_postings_merged module
+                            spec = importlib.util.spec_from_file_location("job_postings_merged", "job_postings_merged.py")
+                            job_postings = importlib.util.module_from_spec(spec)
+                            sys.modules["job_postings_merged"] = job_postings
+                            spec.loader.exec_module(job_postings)
+                            
+                            # Get job text from URL if provided
+                            if job_url and not job_text:
+                                try:
+                                    job_text = job_postings.get_website_text_content(job_url)
+                                    st.success("Successfully extracted content from URL")
+                                except Exception as e:
+                                    st.error(f"Error extracting content from URL: {str(e)}")
+                                    job_text = None
+                            
+                            if job_text:
+                                # Analyze job posting
+                                job_data = job_postings.analyze_job_posting(job_text)
+                                
+                                if job_data:
+                                    # Store in session state
+                                    if "job_skills" not in st.session_state:
+                                        st.session_state.job_skills = {
+                                            'required': job_data.get('required_skills', []),
+                                            'preferred': job_data.get('preferred_skills', [])
+                                        }
+                                    
+                                    # Display the results
+                                    st.success("Job posting analyzed successfully!")
+                                    
+                                    # Job details
+                                    st.subheader("Job Details")
+                                    st.write(f"**Position:** {job_data.get('title', 'Not specified')}")
+                                    st.write(f"**Company:** {job_data.get('company', 'Not specified')}")
+                                    st.write(f"**Category:** {job_data.get('category', 'Not specified')}")
+                                    
+                                    # Show job text in expander
+                                    with st.expander("View Job Text", expanded=False):
+                                        st.text_area("Job Description", job_text, height=300, disabled=True)
+                                    
+                                    # Required skills
+                                    col1, col2 = st.columns(2)
+                                    
+                                    with col1:
+                                        st.subheader("Required Skills")
+                                        required_skills = job_data.get('required_skills', [])
+                                        if required_skills:
+                                            for skill in required_skills:
+                                                # Check if user has this skill
+                                                if "user_skills" in st.session_state and skill in st.session_state.user_skills:
+                                                    st.markdown(f"- ✅ {skill}")
+                                                else:
+                                                    st.markdown(f"- ❌ {skill}")
+                                        else:
+                                            st.write("No required skills specified.")
+                                    
+                                    with col2:
+                                        st.subheader("Preferred Skills")
+                                        preferred_skills = job_data.get('preferred_skills', [])
+                                        if preferred_skills:
+                                            for skill in preferred_skills:
+                                                # Check if user has this skill
+                                                if "user_skills" in st.session_state and skill in st.session_state.user_skills:
+                                                    st.markdown(f"- ✅ {skill}")
+                                                else:
+                                                    st.markdown(f"- ❌ {skill}")
+                                        else:
+                                            st.write("No preferred skills specified.")
+                                    
+                                    # Add missing skills to profile
+                                    if st.button("Add Missing Skills to Profile", key="add_skills_btn"):
+                                        if "user_skills" not in st.session_state:
+                                            st.session_state.user_skills = {}
+                                        
+                                        all_job_skills = set(required_skills + preferred_skills)
+                                        user_skills = set(st.session_state.user_skills.keys()) if "user_skills" in st.session_state else set()
+                                        missing_skills = all_job_skills - user_skills
+                                        
+                                        # Add each missing skill
+                                        for skill in missing_skills:
+                                            st.session_state.user_skills[skill] = {
+                                                "rating": 1,
+                                                "experience": f"Added from job: {job_data.get('title', 'Unknown')}",
+                                                "projects": []
+                                            }
+                                        
+                                        if missing_skills:
+                                            st.success(f"Added {len(missing_skills)} missing skills to your profile!")
+                                            # Update the database if needed
+                                        else:
+                                            st.info("No new skills to add. You already have all the skills listed in this job.")
+                                else:
+                                    st.error("Could not analyze job posting. Please try a different job description.")
+                        except Exception as e:
+                            st.error(f"Error analyzing job posting: {str(e)}")
+                            st.info("Please check your internet connection and try again.")
         
         # Display and edit skills section
         st.subheader("Your Skills")
