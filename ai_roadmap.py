@@ -540,7 +540,7 @@ def ai_roadmap_generator_page(pathway=None, pathways_df=None, metrics_data=None)
 
         uploaded_file = st.file_uploader("Upload your resume (PDF, DOCX, or TXT)", 
                                         type=["pdf", "docx", "txt"],
-                                        key="resume_upload")
+                                        key="ai_roadmap_resume_upload")
 
         st.markdown("### Professional Background")
         current_role = st.text_input("Current Role", placeholder="e.g., Software Engineer at IBM")
