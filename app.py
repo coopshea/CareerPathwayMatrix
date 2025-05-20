@@ -1345,9 +1345,9 @@ with tab6:
     skill alignment (how well your skills match the requirements) and growth potential.
     """)
     
-    # Get metrics for the matrix axes
-    x_metric = "skill_match"
-    y_metric = "growth_potential"
+    # Get metrics for the matrix axes - using metrics that exist in our data
+    x_metric = "technical_specialization"
+    y_metric = "success_probability"
     
     # Create the visualization
     create_matrix_visualization(pathways_data, x_metric, y_metric, metrics_data)
