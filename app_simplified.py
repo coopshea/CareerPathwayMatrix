@@ -40,8 +40,32 @@ pathways_df, metrics_data, categories = load_all()
 
 # 4) Page‐by‐page renderers
 def render_welcome_tab():
-    st.header("🚀 Welcome")
-    st.markdown("Use the tabs to explore your career pathway, upload resumes, and get AI roadmaps.")
+    st.header("🚀 Welcome to CareerPath Navigator")
+    
+    # Motivational introduction
+    st.markdown("""
+    ### Finding Your Path Forward
+    
+    Feeling stuck in your current role? Excited about exploring a new industry but not sure where to start? 
+    
+    **CareerPath Navigator** is designed for professionals just like you - helping you bridge the gap between 
+    where you are now and where you want to be.
+    
+    ### How to Use This App:
+    
+    1. **Explore** career pathways using the **2×2 Matrix** tab
+    2. **Analyze** your current skills with the **Skill Graph** tab 
+    3. **Discover** matching careers in the **Find Your Pathway** tab
+    4. **Plan** your journey with the **AI Roadmap** tab
+    5. **Compare** your skills to opportunities in the **Job & Resume Analysis** tab
+    
+    Every journey begins with a single step. Use the tabs above to navigate through the features or ask our 
+    AI assistant below for personalized guidance.
+    """)
+    
+    # AI chat assistant
+    st.markdown("---")
+    st.markdown("### Not sure where to start? Ask our AI Career Assistant")
 
 def render_portfolio_tab():
     st.header("📂 Project Portfolio")
