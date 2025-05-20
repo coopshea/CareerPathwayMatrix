@@ -12,6 +12,7 @@ from io import BytesIO
 import base64
 import random
 import re
+from datetime import datetime
 
 # Define AI skills analysis function
 def analyze_resume_skills(resume_text):
@@ -772,7 +773,7 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
                         if st.button("Delete Skill", key=f"del_{skill}"):
                             del st.session_state.user_skills[skill]
                             st.success(f"Deleted skill: {skill}")
-                            st.experimental_rerun()
+                            st.rerun()
             
             # Generate and display the skill graph
             if len(st.session_state.user_skills) > 1:
@@ -823,7 +824,7 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
                         "projects": []
                     }
                     st.success(f"Added skill: {new_skill}")
-                    st.experimental_rerun()
+                    st.rerun()
     
     with roadmap_tab:
         st.header("Skill Development Roadmap")
@@ -926,7 +927,7 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
                             if st.button("Delete Roadmap", key=f"del_roadmap_{skill}"):
                                 del st.session_state.saved_roadmaps[skill]
                                 st.success(f"Roadmap for {skill} deleted.")
-                                st.experimental_rerun()
+                                st.rerun()
     
     with jobs_tab:
         st.header("Job Requirements Analysis")
@@ -1043,7 +1044,7 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
                                             }
                                     
                                     st.success(f"Added {len(missing_skills)} new skills to your profile!")
-                                    st.experimental_rerun()
+                                    st.rerun()
                             
                         except Exception as e:
                             st.error(f"Error analyzing job posting: {str(e)}")
@@ -1060,7 +1061,7 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
                     if st.button("Remove", key=f"remove_job_{i}"):
                         st.session_state.job_postings.pop(i)
                         st.success("Job posting removed.")
-                        st.experimental_rerun()
+                        st.rerun()
 
 def skill_graph_page():
     """Streamlit page for the interactive skill graph and roadmap visualizations."""
