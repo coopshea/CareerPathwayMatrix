@@ -285,7 +285,7 @@ else:
             # Check if the response suggests navigating to a specific tab
             for tab_idx, keywords in tab_keywords.items():
                 for keyword in keywords:
-                    if keyword in collected_content_lower:
+                    if keyword in response_lower:
                         st.session_state.active_tab = tab_idx
                         break
                 
@@ -610,12 +610,12 @@ else:
         
         # Display random inspirational quote
         quotes = [
-            "\"Choose a job you love, and you will never have to work a day in your life.\" — Confucius",
-            "\"The future depends on what you do today.\" — Mahatma Gandhi",
-            "\"Success is not final, failure is not fatal: It is the courage to continue that counts.\" — Winston Churchill",
-            "\"The only way to do great work is to love what you do.\" — Steve Jobs",
-            "\"Believe you can and you're halfway there.\" — Theodore Roosevelt",
-            "\"The best way to predict your future is to create it.\" — Abraham Lincoln"
+            ""Choose a job you love, and you will never have to work a day in your life." — Confucius",
+            ""The future depends on what you do today." — Mahatma Gandhi",
+            ""Success is not final, failure is not fatal: It is the courage to continue that counts." — Winston Churchill",
+            ""The only way to do great work is to love what you do." — Steve Jobs",
+            ""Believe you can and you're halfway there." — Theodore Roosevelt",
+            ""The best way to predict your future is to create it." — Abraham Lincoln"
         ]
         
         st.markdown("---")
@@ -635,49 +635,8 @@ else:
     
     # 2x2 Matrix tab content
     with tab2:
-        st.write("## Explore Career Pathways on a 2x2 Matrix")
-        
-        # Only show sidebar in this tab
-        with st.sidebar:
-            st.markdown("## Matrix Controls")
-            
-            # Category filters 
-            selected_categories = st.multiselect(
-                "Filter by Category",
-                ["All"] + categories,
-                default=["All"],
-                key="matrix_categories"
-            )
-            
-            if "All" in selected_categories:
-                filtered_pathways = pathways_data
-            else:
-                filtered_pathways = pathways_data[pathways_data['category'].isin(selected_categories)]
-            
-            # Select x and y axis metrics
-            x_metric = st.selectbox(
-                "X-Axis Metric", 
-                list(metrics_data.keys()),
-                index=list(metrics_data.keys()).index("risk_level") if "risk_level" in metrics_data else 0,
-                key="x_axis_metric"
-            )
-            
-            y_metric = st.selectbox(
-                "Y-Axis Metric", 
-                list(metrics_data.keys()),
-                index=list(metrics_data.keys()).index("success_probability") if "success_probability" in metrics_data else 0,
-                key="y_axis_metric"
-            )
-            
-            # Display descriptions of the selected metrics
-            st.markdown(f"### {metrics_data[x_metric]['name']}")
-            st.write(metrics_data[x_metric]['description'])
-            st.markdown(f"### {metrics_data[y_metric]['name']}")
-            st.write(metrics_data[y_metric]['description'])
-        
         # Create the matrix visualization
-        figure = create_matrix_visualization(filtered_pathways, x_metric, y_metric, metrics_data)
-        st.plotly_chart(figure, use_container_width=True)
+        create_matrix_visualization(pathways_data)
     
     # Find Your Pathway tab content
     with tab3:
