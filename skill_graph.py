@@ -1008,30 +1008,10 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
         if "user_skills" not in st.session_state or not st.session_state.user_skills:
             st.warning("Please add skills in the Skills Profile tab first.")
         else:
-            # Create sidebar filters for job skills
-            st.sidebar.subheader("Skill Graph Filters")
-            
-            skill_type = st.sidebar.selectbox(
-                "Job Skill Type Filter", 
-                ["All", "Required", "Preferred"],
-                index=0
-            )
-            
-            job_category = st.sidebar.selectbox(
-                "Job Category Filter",
-                ["All Categories", "Software Development", "Data Science", "Product Management"],
-                index=0
-            )
-            
-            # Convert filters for database
-            skill_type_param = None if skill_type == "All" else skill_type.lower()
-            category_param = None if job_category == "All Categories" else job_category
-            
-            # Number of skills to show
-            top_n = st.sidebar.slider(
-                "Number of Job Skills to Include", 
-                10, 100, 50
-            )
+            # Set default parameters since we removed the sidebar filters
+            skill_type_param = None
+            category_param = None
+            top_n = 50  # Default number of skills to show
             
             # Get job skills from database
             from database import fetch_job_skills
