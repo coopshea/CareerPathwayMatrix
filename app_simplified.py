@@ -368,9 +368,9 @@ def render_ai_roadmap_tab():
 
 def render_skill_graph_tab():
     st.header("🧩 Skill Graph")
-    # Call our updated render_skill_graph_tab function instead of skill_graph_page
-    from skill_graph import render_skill_graph_tab
-    render_skill_graph_tab(user_data=st.session_state.user_data)
+    # Import and use the skill_graph_page function
+    from skill_graph import skill_graph_page
+    skill_graph_page()
 
 def main():
     
