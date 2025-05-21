@@ -652,6 +652,14 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
     if "skills_updated" not in st.session_state:
         st.session_state.skills_updated = False
     
+    # Always initialize with empty skills - this ensures each user gets their own clean slate
+    if "user_skills" not in st.session_state:
+        st.session_state.user_skills = {}
+    
+    # Initialize job_skills as empty for new users (no demo data)
+    if "job_skills" not in st.session_state:
+        st.session_state.job_skills = {}
+    
     # Create tabs for different skill analysis views
     skills_tab, graph_tab, roadmap_tab = st.tabs(["Skills Profile", "Skill Graph", "Skill Roadmap"])
     

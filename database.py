@@ -562,6 +562,12 @@ def fetch_user_skills():
         dict: Dictionary of user skills
             {skill_name: {rating, experience, projects}}
     """
+    # For the demo version, we'll always return an empty skills dictionary
+    # This ensures each user starts with their own fresh data
+    return {}
+    
+    # In a production version, we would fetch skills specific to the authenticated user
+    """
     try:
         session = Session()
         skills = session.query(UserSkill).all()
@@ -580,6 +586,7 @@ def fetch_user_skills():
     except Exception as e:
         print(f"Error fetching user skills from database: {e}")
         return {}
+    """
 
 # Initialize the database and import data
 def init_and_load_data():
