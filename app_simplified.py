@@ -64,140 +64,127 @@ def render_welcome_tab():
     st.markdown("---")
     st.markdown("### Not sure where to start? Ask our AI Career Assistant")
 
-    # Create a container for the chat interface with fixed height
-    chat_container = st.container()
-    
     # Initialize chat messages if not already in session state
     if "messages" not in st.session_state:
         st.session_state.messages = [
             {"role": "assistant", "content": "Hello! I'm your AI career assistant. How can I help you today?"}
         ]
+
+    # Create a container for the chat interface
+    chat_container = st.container()
     
     # Create a container for the input at the bottom
     input_container = st.container()
+    
+    # Display chat messages
+    with chat_container:
+        # Create a scrollable area for messages with a fixed height
+        st.markdown('<div style="height: 400px; overflow-y: auto;">', unsafe_allow_html=True)
+        
+        # Display chat messages from history
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
+                
+        st.markdown('</div>', unsafe_allow_html=True)
     
     # Place the chat input at the bottom
     with input_container:
         prompt = st.chat_input("What would you like to know about your career options?")
     
-    # Display chat messages in the scrollable container
-    with chat_container:
-        # Reserve space and create a scrollable area for messages
-        st.markdown('<div class="chat-messages" style="overflow-y: auto; max-height: 400px;">', unsafe_allow_html=True)
-        
-        # Display chat messages from history on app rerun
-        for message in st.session_state.messages:
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-    # Process user input (put this after the display logic)
+    # Process user input
     if prompt:
         # Add user message to chat history
         st.session_state.messages.append({"role": "user", "content": prompt})
         
-        # Display assistant response in chat message container
+        # Add empty assistant message placeholder
         with chat_container:
             with st.chat_message("assistant"):
-                response_placeholder = st.empty()
-            
+                message_placeholder = st.empty()
+                
                 try:
                     # Get API key if available
                     import os
+                    import time
                     api_key = os.environ.get("OPENAI_API_KEY")
                     
                     if api_key:
                         from openai import OpenAI
-                        
-                        # Create OpenAI client
                         client = OpenAI(api_key=api_key)
                         
-                        # System message for the chat context with updated app information
-                        messages = [
-                            {"role": "system", "content": """You are a helpful career assistant in the CareerPath Navigator application. 
-                            
-                            App Features:
-                            - 2x2 Matrix: For comparing career paths visually on different dimensions
-                            - Find Your Pathway: For matching user preferences to career options
-                            - AI Roadmap: For generating personalized learning roadmaps
-                            - Job Posting Analysis: For analyzing job opportunities and skill requirements
-                            - Skill Graph: For analyzing user skills and identifying gaps
-                            - Portfolio: For organizing projects to showcase skills and prepare for interviews
-                            
-                            About the app (based on demo transcript):
-                            The CareerPath Navigator helps users navigate from their current career position to where they want to be. It extracts skills from resumes and compares them with job requirements, creating visual skill maps that show overlaps and gaps. The tool also helps users find the most efficient path to gain new skills for jobs they're interested in. The portfolio feature allows users to document projects demonstrating their skills which helps them prepare compelling stories for interviews.
-                            
-                            Keep responses friendly, concise and helpful."""}
-                        ]
+                        # System message with app context
+                        context = """You are a helpful career assistant in the CareerPath Navigator application. 
                         
-                        # Create messages list for OpenAI API
-                        api_messages = [{
-                            "role": "system", 
-                            "content": """You are a helpful career assistant in the CareerPath Navigator application. 
-                            
-                            App Features:
-                            - 2x2 Matrix: For comparing career paths visually on different dimensions
-                            - Find Your Pathway: For matching user preferences to career options
-                            - AI Roadmap: For generating personalized learning roadmaps
-                            - Job Posting Analysis: For analyzing job opportunities and skill requirements
-                            - Skill Graph: For analyzing user skills and identifying gaps
-                            - Portfolio: For organizing projects to showcase skills and prepare for interviews
-                            
-                            About the app (based on demo transcript):
-                            The CareerPath Navigator helps users navigate from their current career position to where they want to be. It extracts skills from resumes and compares them with job requirements, creating visual skill maps that show overlaps and gaps. The tool also helps users find the most efficient path to gain new skills for jobs they're interested in. The portfolio feature allows users to document projects demonstrating their skills which helps them prepare compelling stories for interviews.
-                            
-                            Keep responses friendly, concise and helpful."""
-                        }]
+                        App Features:
+                        - 2x2 Matrix: For comparing career paths visually on different dimensions
+                        - Find Your Pathway: For matching user preferences to career options
+                        - AI Roadmap: For generating personalized learning roadmaps
+                        - Job Posting Analysis: For analyzing job opportunities and skill requirements
+                        - Skill Graph: For analyzing user skills and identifying gaps
+                        - Portfolio: For organizing projects to showcase skills and prepare for interviews
                         
-                        # Add conversation history
+                        About the app (based on demo transcript):
+                        The CareerPath Navigator helps users navigate from their current career position to where they want to be. It extracts skills from resumes and compares them with job requirements, creating visual skill maps that show overlaps and gaps. The tool also helps users find the most efficient path to gain new skills for jobs they're interested in. The portfolio feature allows users to document projects demonstrating their skills which helps them prepare compelling stories for interviews.
+                        
+                        Keep responses friendly, concise and helpful."""
+                        
+                        # Prepare messages for API call
+                        messages = [{"role": "system", "content": context}]
+                        
+                        # Add chat history (only user and assistant messages)
                         for msg in st.session_state.messages:
                             if msg["role"] in ["user", "assistant"]:
-                                api_messages.append({
-                                    "role": msg["role"], 
-                                    "content": msg["content"]
-                                })
+                                messages.append({"role": msg["role"], "content": msg["content"]})
                         
                         # Get response from OpenAI
                         response = client.chat.completions.create(
                             model="gpt-4o",
-                            messages=api_messages,
+                            messages=messages,
                             temperature=0.7,
                             max_tokens=500
                         )
                         
+                        # Get full response
                         full_response = response.choices[0].message.content
                         
-                        # Create a streaming effect
-                        import time
+                        # Display with typing effect
+                        displayed_text = ""
+                        for char in full_response:
+                            displayed_text += char
+                            message_placeholder.markdown(displayed_text + "▌")
+                            time.sleep(0.005)  # Small typing delay
                         
-                        # Check if full_response is not None before iterating
-                        if full_response:
-                            displayed_response = ""
-                            for char in full_response:
-                                displayed_response += char
-                                response_placeholder.markdown(displayed_response + "▌")
-                                time.sleep(0.005)  # Small delay to simulate typing
-                                
-                            # Final message without cursor
-                            response_placeholder.markdown(full_response)
+                        # Final display without cursor
+                        message_placeholder.markdown(full_response)
                         
-                    else:
-                        # Fallback response if no API key
-                        full_response = "I'm here to help you navigate your career options! You can explore different paths in the tabs above, or ask me specific questions about career transitions, skill development, or job hunting strategies."
+                        # Add to chat history
+                        st.session_state.messages.append({"role": "assistant", "content": full_response})
                     
+                    else:
+                        # Fallback if no API key
+                        fallback_response = "I'm here to help you navigate your career options! You can explore different paths in the tabs above, or ask me specific questions about career transitions, skill development, or job hunting strategies."
+                        
+                        # Display typed fallback response
+                        displayed_text = ""
+                        for char in fallback_response:
+                            displayed_text += char
+                            message_placeholder.markdown(displayed_text + "▌")
+                            time.sleep(0.005)
+                            
+                        # Final display
+                        message_placeholder.markdown(fallback_response)
+                        
+                        # Add to chat history
+                        st.session_state.messages.append({"role": "assistant", "content": fallback_response})
+                
                 except Exception as e:
-                    full_response = f"I'm here to help with career guidance. What specific aspect of your career journey would you like to explore today?"
-                    print(f"Error generating AI response: {str(e)}")
-                
-                # Display the response
-                response_placeholder.markdown(full_response)
-                
-                # Add assistant response to chat history (ensure content is not None)
-                if full_response is not None:
-                    st.session_state.messages.append({"role": "assistant", "content": full_response})
+                    # Error handling
+                    error_response = "I'm here to help with career guidance. What specific aspect of your career journey would you like to explore today?"
+                    message_placeholder.markdown(error_response)
+                    st.session_state.messages.append({"role": "assistant", "content": error_response})
+                    print(f"Error in chat: {str(e)}")
         
-        # Rerun the app to show the updated chat immediately
+        # Rerun to update the UI
         st.rerun()
 
 def render_portfolio_tab():
