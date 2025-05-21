@@ -68,7 +68,7 @@ def is_authenticated():
 
 def get_current_user():
     """Get current authenticated user information"""
-    return st.session_state.get("user", None)
+    return st.session_state.get("user", {"username": "Guest"})
 
 def logout():
     """Log out current user"""
