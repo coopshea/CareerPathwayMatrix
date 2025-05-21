@@ -1,14 +1,4 @@
 import streamlit as st
-import os
-import hashlib
-import json
-from datetime import datetime
-
-# Import our custom auth
-from user_auth import (
-    is_authenticated, get_username, get_email, 
-    auth_widget, premium_feature_gate
-)
 
 # Set page config at the very beginning
 st.set_page_config(page_title="CareerPath Navigator", layout="wide")
@@ -51,29 +41,21 @@ pathways_df, metrics_data, categories = load_all()
 
 # 4) Page‐by‐page renderers
 def render_welcome_tab():
-    # Create columns for layout
-    col1, col2 = st.columns([3, 1])
+
+    # Motivational introduction
+    st.markdown("""
+    ### Finding Your Path Forward
     
-    with col1:
-        st.markdown("## Welcome to CareerPath Navigator")
-        
-        # Motivational introduction
-        st.markdown("""
-        ### Finding Your Path Forward
-        
-        Feeling stuck in your current role? Excited about exploring a new industry but not sure where to start? 
-        
-        **CareerPath Navigator** is designed to bridge the gap between 
-        where you are now and where you want to be.
-        """)
+    Feeling stuck in your current role? Excited about exploring a new industry but not sure where to start? 
     
-    with col2:
-        # Display login/user info
-        auth_widget()
+    **CareerPath Navigator** is designed to bridge the gap between 
+    where you are now and where you want to be.
+    """)
     
     # Video tutorial/introduction
     st.subheader("Watch the tutorial")
     # URL can be YouTube, Vimeo, or a direct video file
+    # For demo purposes, using a placeholder YouTube URL until the actual video is recorded
     video_url = "https://youtu.be/B2iAodr0fOo"  # Replace with actual video when available
     st.video(video_url)
     
@@ -81,28 +63,23 @@ def render_welcome_tab():
     st.markdown("---")
     st.markdown("### Not sure where to start? Ask our AI Career Assistant")
     
-    # Add data reset functionality if authenticated
-    if is_authenticated():
-        st.markdown("---")
-        st.subheader("Reset Your Data")
-        st.write("If you want to start fresh or remove your personal data, you can reset the application data here.")
-        
-        reset_col1, reset_col2 = st.columns([3, 1])
-        with reset_col1:
-            st.warning("This will clear all your skills, uploaded files, and saved learning plans. This cannot be undone.")
-        with reset_col2:
-            if st.button("Reset All Data"):
-                # Clear session state except auth
-                for key in list(st.session_state.keys()):
-                    if key != "user_id":  # Keep user auth
-                        try:
-                            del st.session_state[key]
-                        except:
-                            pass
-                
-                # Refresh the page
-                st.success("All data has been reset! The page will refresh momentarily.")
-                st.rerun()
+    # Add data reset functionality - Just the button with simpler implementation
+    st.markdown("---")
+    st.subheader("Reset Your Data")
+    st.write("If you want to start fresh or remove your personal data, you can reset the application data here.")
+    
+    reset_col1, reset_col2 = st.columns([3, 1])
+    with reset_col1:
+        st.warning("This will clear all your skills, uploaded files, and saved learning plans. This cannot be undone.")
+    with reset_col2:
+        if st.button("Reset All Data"):
+            # Just clear session state completely and reinitialize
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            
+            # Refresh the page
+            st.success("All data has been reset! The page will refresh momentarily.")
+            st.rerun()
     
     # Initialize chat messages if not already in session state
     if "messages" not in st.session_state:
@@ -499,37 +476,21 @@ def main():
         
         # Add data reset functionality to About tab as well
         st.markdown("---")
+        st.subheader("Reset Your Data")
+        st.write("If you want to start fresh or remove your personal data, you can reset the application data here.")
         
-        # Create columns for account info
-        col1, col2 = st.columns([2, 1])
-        
-        with col1:
-            st.subheader("Your Account")
-            # Display login widget if not authenticated
-            auth_widget()
-        
-        # Only show reset functionality if authenticated
-        if is_authenticated():
-            st.markdown("---")
-            st.subheader("Reset Your Data")
-            st.write("If you want to start fresh or remove your personal data, you can reset the application data here.")
-            
-            reset_col1, reset_col2 = st.columns([3, 1])
-            with reset_col1:
-                st.warning("This will clear all your skills, uploaded files, and saved learning plans. This cannot be undone.")
-            with reset_col2:
-                if st.button("Reset All Data", key="reset_data_about"):
-                    # Clear session state except auth
-                    for key in list(st.session_state.keys()):
-                        if key != "user_id":  # Keep user auth
-                            try:
-                                del st.session_state[key]
-                            except:
-                                pass
-                    
-                    # Refresh the page
-                    st.success("All data has been reset! The page will refresh momentarily.")
-                    st.rerun()
+        reset_col1, reset_col2 = st.columns([3, 1])
+        with reset_col1:
+            st.warning("This will clear all your skills, uploaded files, and saved learning plans. This cannot be undone.")
+        with reset_col2:
+            if st.button("Reset All Data", key="reset_data_about"):
+                # Just clear session state completely
+                for key in list(st.session_state.keys()):
+                    del st.session_state[key]
+                
+                # Refresh the page
+                st.success("All data has been reset! The page will refresh momentarily.")
+                st.rerun()
 
 if __name__ == "__main__":
     main()
