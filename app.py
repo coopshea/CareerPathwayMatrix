@@ -1,20 +1,14 @@
 import streamlit as st
 import os
 import hashlib
-from replit import db
+import json
+from datetime import datetime
 
-# Import Replit auth - check if we're running on Replit
-try:
-    from replit.auth import is_authenticated, user_id, username, email, authenticated_user
-    REPLIT_ENV = True
-except ImportError:
-    # Mock auth functions for local development
-    REPLIT_ENV = False
-    def is_authenticated(): return False
-    def user_id(): return None
-    def username(): return None
-    def email(): return None
-    def authenticated_user(): return None
+# Import our custom auth
+from user_auth import (
+    is_authenticated, get_username, get_email, 
+    auth_widget, premium_feature_gate
+)
 
 # Set page config at the very beginning
 st.set_page_config(page_title="CareerPath Navigator", layout="wide")
@@ -57,64 +51,11 @@ pathways_df, metrics_data, categories = load_all()
 
 # 4) Page‐by‐page renderers
 def render_welcome_tab():
-    # Check if user is authenticated with Replit Auth
-    if not is_authenticated():
+    # Create columns for layout
+    col1, col2 = st.columns([3, 1])
+    
+    with col1:
         st.markdown("## Welcome to CareerPath Navigator")
-        st.info("Please sign in with your Replit account to access all features.")
-        
-        # Display benefits of signing in
-        st.markdown("""
-        ### Benefits of Signing In:
-        - Save your career data and skills between sessions
-        - Track your progress over time
-        - Create personalized learning paths
-        - Access your data from any device
-        """)
-        
-        # Simple login button that redirects to Replit Auth
-        st.markdown("""
-        <div style="display: flex; justify-content: center; margin: 30px 0;">
-            <a href="https://replit.com/auth_with_repl_site?domain=replit.app" target="_self" style="text-decoration: none;">
-                <button style="background-color: #F26207; color: white; border: none; border-radius: 4px; padding: 10px 20px; font-size: 16px; cursor: pointer;">
-                    Sign In with Replit
-                </button>
-            </a>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Preview video to show what they'll get after signing in
-        st.subheader("See CareerPath Navigator in action")
-        video_url = "https://youtu.be/B2iAodr0fOo"  # Replace with actual video when available
-        st.video(video_url)
-    else:
-        # User is authenticated, show personalized welcome
-        st.markdown(f"## Welcome, {username()}!")
-        
-        # Create a user_id hash for database storage
-        user_id_value = user_id() or f"demo-{username() or 'user'}"
-        user_hash = hashlib.md5(user_id_value.encode()).hexdigest()
-        
-        # Store user info in session state
-        if "user_info" not in st.session_state:
-            st.session_state.user_info = {
-                "user_id": user_hash,
-                "username": username() or "Guest User",
-                "email": email() or "No email provided"
-            }
-            
-            # Initialize user data in Replit db if it doesn't exist
-            if f"user:{user_hash}" not in db:
-                db[f"user:{user_hash}"] = {
-                    "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "last_login": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "skills": {},
-                    "projects": []
-                }
-            else:
-                # Update last login time
-                user_data = db[f"user:{user_hash}"]
-                user_data["last_login"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                db[f"user:{user_hash}"] = user_data
         
         # Motivational introduction
         st.markdown("""
@@ -125,18 +66,23 @@ def render_welcome_tab():
         **CareerPath Navigator** is designed to bridge the gap between 
         where you are now and where you want to be.
         """)
-        
-        # Video tutorial/introduction
-        st.subheader("Watch the tutorial")
-        # URL can be YouTube, Vimeo, or a direct video file
-        video_url = "https://youtu.be/B2iAodr0fOo"  # Replace with actual video when available
-        st.video(video_url)
-        
-        # AI chat assistant
-        st.markdown("---")
-        st.markdown("### Not sure where to start? Ask our AI Career Assistant")
-        
-        # Add data reset functionality
+    
+    with col2:
+        # Display login/user info
+        auth_widget()
+    
+    # Video tutorial/introduction
+    st.subheader("Watch the tutorial")
+    # URL can be YouTube, Vimeo, or a direct video file
+    video_url = "https://youtu.be/B2iAodr0fOo"  # Replace with actual video when available
+    st.video(video_url)
+    
+    # AI chat assistant
+    st.markdown("---")
+    st.markdown("### Not sure where to start? Ask our AI Career Assistant")
+    
+    # Add data reset functionality if authenticated
+    if is_authenticated():
         st.markdown("---")
         st.subheader("Reset Your Data")
         st.write("If you want to start fresh or remove your personal data, you can reset the application data here.")
@@ -146,22 +92,13 @@ def render_welcome_tab():
             st.warning("This will clear all your skills, uploaded files, and saved learning plans. This cannot be undone.")
         with reset_col2:
             if st.button("Reset All Data"):
-                # Clear session state
+                # Clear session state except auth
                 for key in list(st.session_state.keys()):
-                    if key != "user_info":  # Keep user info
+                    if key != "user_id":  # Keep user auth
                         try:
                             del st.session_state[key]
                         except:
                             pass
-                
-                # Reset user data in Replit db
-                user_hash = st.session_state.user_info["user_id"]
-                db[f"user:{user_hash}"] = {
-                    "created_at": db[f"user:{user_hash}"]["created_at"],
-                    "last_login": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "skills": {},
-                    "projects": []
-                }
                 
                 # Refresh the page
                 st.success("All data has been reset! The page will refresh momentarily.")
@@ -563,25 +500,17 @@ def main():
         # Add data reset functionality to About tab as well
         st.markdown("---")
         
-        if is_authenticated():
-            # Display user account info
+        # Create columns for account info
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
             st.subheader("Your Account")
-            st.write(f"**Username:** {username()}")
-            if email():
-                st.write(f"**Email:** {email()}")
-            
-            # Add logout button
-            st.markdown("""
-            <div style="margin: 10px 0;">
-                <a href="/_replit/logout" target="_self" style="text-decoration: none;">
-                    <button style="background-color: #6c757d; color: white; border: none; border-radius: 4px; padding: 8px 16px; font-size: 14px; cursor: pointer;">
-                        Sign Out
-                    </button>
-                </a>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Reset data functionality
+            # Display login widget if not authenticated
+            auth_widget()
+        
+        # Only show reset functionality if authenticated
+        if is_authenticated():
+            st.markdown("---")
             st.subheader("Reset Your Data")
             st.write("If you want to start fresh or remove your personal data, you can reset the application data here.")
             
@@ -590,41 +519,17 @@ def main():
                 st.warning("This will clear all your skills, uploaded files, and saved learning plans. This cannot be undone.")
             with reset_col2:
                 if st.button("Reset All Data", key="reset_data_about"):
-                    # Clear session state
+                    # Clear session state except auth
                     for key in list(st.session_state.keys()):
-                        if key != "user_info":  # Keep user info
+                        if key != "user_id":  # Keep user auth
                             try:
                                 del st.session_state[key]
                             except:
                                 pass
                     
-                    # Reset user data in Replit db if authenticated
-                    if "user_info" in st.session_state:
-                        user_hash = st.session_state.user_info["user_id"]
-                        db[f"user:{user_hash}"] = {
-                            "created_at": db[f"user:{user_hash}"].get("created_at", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-                            "last_login": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                            "skills": {},
-                            "projects": []
-                        }
-                    
                     # Refresh the page
                     st.success("All data has been reset! The page will refresh momentarily.")
                     st.rerun()
-        else:
-            # Show login prompt
-            st.info("Sign in with your Replit account to save your progress and access all features.")
-            
-            # Login button
-            st.markdown("""
-            <div style="display: flex; justify-content: center; margin: 20px 0;">
-                <a href="https://replit.com/auth_with_repl_site?domain=replit.app" target="_self" style="text-decoration: none;">
-                    <button style="background-color: #F26207; color: white; border: none; border-radius: 4px; padding: 10px 20px; font-size: 16px; cursor: pointer;">
-                        Sign In with Replit
-                    </button>
-                </a>
-            </div>
-            """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
