@@ -1024,16 +1024,21 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
             # Get job skills from database
             from database import fetch_job_skills
             
-            # Check if we have job postings in session state
+            # Check if we have job postings or skills in session state
             has_job_postings = "job_postings" in st.session_state and len(st.session_state.job_postings) > 0
+            has_job_skills = "job_skills" in st.session_state and (
+                len(st.session_state.job_skills.get('required', [])) > 0 or 
+                len(st.session_state.job_skills.get('preferred', [])) > 0
+            )
             
-            # Fetch job skills for visualization
-            job_skills = fetch_job_skills(top_n=top_n, skill_type=skill_type_param, category=category_param)
+            # Fetch job skills from database for visualization
+            db_job_skills = fetch_job_skills(top_n=top_n, skill_type=skill_type_param, category=category_param)
             
-            # We'll also use skills from session state job postings
+            # Process skills from session state - recently uploaded job descriptions
             session_job_skills = []
+            
+            # Add skills from job postings in session state
             if has_job_postings:
-                # Extract skills from job postings in session state
                 for job in st.session_state.job_postings:
                     if "required_skills" in job:
                         for skill in job["required_skills"]:
@@ -1054,10 +1059,47 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
                                 "job_id": job.get("title", "Unknown Job")
                             })
             
-            # Combine db job skills with session job skills
-            all_job_skills = job_skills + session_job_skills
+            # Add skills from session state job_skills (from uploaded job descriptions)
+            if has_job_skills:
+                # Add required skills
+                for skill in st.session_state.job_skills.get('required', []):
+                    session_job_skills.append({
+                        "name": skill,
+                        "frequency": 5,
+                        "job_count": 1,
+                        "skill_type": "required",
+                        "job_id": "Current Job Posting"
+                    })
+                # Add preferred skills
+                for skill in st.session_state.job_skills.get('preferred', []):
+                    session_job_skills.append({
+                        "name": skill,
+                        "frequency": 3,
+                        "job_count": 1,
+                        "skill_type": "preferred",
+                        "job_id": "Current Job Posting"
+                    })
             
-            if not all_job_skills and not has_job_postings:
+            # For demo purposes, add some sample skills if no job skills found
+            if not db_job_skills and not session_job_skills:
+                # Create a sample of essential job skills that might be relevant
+                sample_job_skills = [
+                    {"name": "Communication", "frequency": 10, "job_count": 5, "skill_type": "required"},
+                    {"name": "Problem Solving", "frequency": 9, "job_count": 4, "skill_type": "required"},
+                    {"name": "Teamwork", "frequency": 8, "job_count": 4, "skill_type": "required"},
+                    {"name": "Project Management", "frequency": 7, "job_count": 3, "skill_type": "required"},
+                    {"name": "Data Analysis", "frequency": 6, "job_count": 3, "skill_type": "preferred"},
+                    {"name": "Python", "frequency": 5, "job_count": 2, "skill_type": "preferred"},
+                    {"name": "JavaScript", "frequency": 4, "job_count": 2, "skill_type": "preferred"},
+                    {"name": "SQL", "frequency": 4, "job_count": 2, "skill_type": "preferred"}
+                ]
+                session_job_skills = sample_job_skills
+            
+            # Combine db job skills with session job skills
+            all_job_skills = db_job_skills + session_job_skills
+            
+            # Display message if no skills found
+            if not all_job_skills:
                 st.info("No job skills found. Try uploading some job postings first.")
             else:
                 # Create the skill graph - use the combined skills
@@ -1371,12 +1413,22 @@ def skill_graph_page():
     # Initialize session state for user data
     if "user_skills" not in st.session_state:
         # Try to load user skills from database first
-        db_skills = fetch_user_skills()
+        from user_auth import is_authenticated, get_username
+        user_id = get_username() if is_authenticated() else None
+        db_skills = fetch_user_skills(user_id)
         if db_skills:
             st.session_state.user_skills = db_skills
-            print(f"Loaded {len(db_skills)} skills from database")
+            print(f"Loaded {len(db_skills)} skills from database for user: {user_id}")
         else:
             st.session_state.user_skills = {}
+    
+    # Initialize job postings list if not present
+    if "job_postings" not in st.session_state:
+        st.session_state.job_postings = []
+    
+    # Initialize job skills session state
+    if "job_skills" not in st.session_state:
+        st.session_state.job_skills = {'required': [], 'preferred': []}
     
     if "user_projects" not in st.session_state:
         st.session_state.user_projects = []
