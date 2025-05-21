@@ -3,6 +3,9 @@ import streamlit as st
 # Set page config at the very beginning
 st.set_page_config(page_title="CareerPath Navigator", layout="wide")
 
+# Import authentication module
+from auth import check_login, get_user_info, logout_user, ensure_server_running
+
 from dataclasses import dataclass, asdict, field
 from typing import Optional, Dict, Any, List
 from datetime import datetime
@@ -386,6 +389,8 @@ def render_skill_graph_tab():
     skill_graph_page()
 
 def main():
+    # Make sure auth server is running
+    ensure_server_running()
     
     # Main header
     st.markdown("""
@@ -394,6 +399,50 @@ def main():
             <h3>Find your path, build your skills, achieve your career goals</h3>
         </div>
     """, unsafe_allow_html=True)
+    
+    # Authentication section in sidebar
+    with st.sidebar:
+        st.header("📋 User Account")
+        
+        # Check if user is logged in
+        if check_login():
+            user = get_user_info()
+            st.success(f"Welcome, {user.get('name', 'User')}!")
+            
+            # Show profile info
+            st.write(f"Username: {user.get('username', '')}")
+            
+            # Profile image if available
+            profile_img = user.get('profileImage', '')
+            if profile_img:
+                st.image(profile_img, width=100)
+            
+            # Logout button
+            if st.button("Logout"):
+                logout_user()
+                st.rerun()
+        else:
+            st.warning("You are not logged in.")
+            auth_url = "http://localhost:8000/auth/login"
+            
+            st.markdown(f"""
+            <a href="{auth_url}" target="_self">
+                <button style="
+                    background-color: #4169E1;
+                    color: white;
+                    padding: 8px 16px;
+                    border-radius: 4px;
+                    border: none;
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-weight: bold;
+                ">
+                    Login with Replit
+                </button>
+            </a>
+            """, unsafe_allow_html=True)
+            
+            st.write("Login to save your progress and access premium features.")
     
     tabs = st.tabs([
         "Welcome",
