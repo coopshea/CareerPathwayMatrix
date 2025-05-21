@@ -400,49 +400,88 @@ def main():
         </div>
     """, unsafe_allow_html=True)
     
-    # Authentication section in sidebar
-    with st.sidebar:
-        st.header("📋 User Account")
+    # Add a small login status indicator in the header
+    col1, col2 = st.columns([3, 1])
+    
+    with col2:
+        is_logged_in = check_login()
         
-        # Check if user is logged in
-        if check_login():
+        if is_logged_in:
             user = get_user_info()
-            st.success(f"Welcome, {user.get('name', 'User')}!")
+            if user is not None:
+                user_name = user.get('name', 'User')
+                login_status = f"✓ Logged in as {user_name}"
+            else:
+                login_status = "✓ Logged in"
             
-            # Show profile info
-            st.write(f"Username: {user.get('username', '')}")
-            
-            # Profile image if available
-            profile_img = user.get('profileImage', '')
-            if profile_img:
-                st.image(profile_img, width=100)
-            
-            # Logout button
-            if st.button("Logout"):
-                logout_user()
+            # Show Account Menu button
+            if st.button("Account Menu"):
+                if 'show_account_menu' not in st.session_state:
+                    st.session_state.show_account_menu = True
+                else:
+                    st.session_state.show_account_menu = not st.session_state.show_account_menu
                 st.rerun()
         else:
-            st.warning("You are not logged in.")
-            auth_url = "http://localhost:8000/auth/login"
+            login_status = "⊗ Not logged in"
             
-            st.markdown(f"""
-            <a href="{auth_url}" target="_self">
-                <button style="
-                    background-color: #4169E1;
-                    color: white;
-                    padding: 8px 16px;
-                    border-radius: 4px;
-                    border: none;
-                    cursor: pointer;
-                    font-size: 14px;
-                    font-weight: bold;
-                ">
-                    Login with Replit
-                </button>
-            </a>
-            """, unsafe_allow_html=True)
+            # Small Login button
+            if st.button("Login"):
+                st.session_state.show_account_menu = True
+                st.rerun()
+                
+        st.write(login_status)
+    
+    # Authentication section - only show when toggled
+    if st.session_state.get('show_account_menu', False):
+        with st.expander("📋 User Account", expanded=True):
+            # Check if user is logged in
+            if is_logged_in:
+                user = get_user_info()
+                if user is not None:
+                    st.success(f"Welcome, {user.get('name', 'User')}!")
+                    
+                    # Show profile info
+                    st.write(f"Username: {user.get('username', '')}")
+                    
+                    # Profile image if available
+                    profile_img = user.get('profileImage', '')
+                    if profile_img:
+                        st.image(profile_img, width=100)
+                else:
+                    st.success("You are logged in!")
+                
+                # Logout button
+                if st.button("Logout", key="logout_btn"):
+                    logout_user()
+                    st.session_state.show_account_menu = False
+                    st.rerun()
+            else:
+                st.warning("You are not logged in.")
+                auth_url = "http://localhost:8000/auth/login"
+                
+                st.markdown(f"""
+                <a href="{auth_url}" target="_self">
+                    <button style="
+                        background-color: #4169E1;
+                        color: white;
+                        padding: 8px 16px;
+                        border-radius: 4px;
+                        border: none;
+                        cursor: pointer;
+                        font-size: 14px;
+                        font-weight: bold;
+                    ">
+                        Login with Replit
+                    </button>
+                </a>
+                """, unsafe_allow_html=True)
+                
+                st.write("Login to save your progress and access premium features.")
             
-            st.write("Login to save your progress and access premium features.")
+            # Close menu button
+            if st.button("Close Menu"):
+                st.session_state.show_account_menu = False
+                st.rerun()
     
     tabs = st.tabs([
         "Welcome",

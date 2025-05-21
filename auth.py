@@ -52,8 +52,8 @@ def auth_callback():
         'exp': datetime.utcnow() + timedelta(days=7)  # Token expires in 7 days
     }
     
-    # Create a signed JWT
-    token = jwt.encode(token_data, app.secret_key, algorithm='HS256')
+    # Create a signed JWT - make sure the secret key is a string
+    token = jwt.encode(token_data, str(app.secret_key), algorithm='HS256')
     
     # Store the token
     tokens[user_id] = token
@@ -70,7 +70,7 @@ def verify_auth():
     
     try:
         # Verify the token
-        payload = jwt.decode(token, app.secret_key, algorithms=['HS256'])
+        payload = jwt.decode(token, str(app.secret_key), algorithms=['HS256'])
         user_id = payload.get('user_id')
         
         # Check if token is valid and matches stored token
@@ -166,7 +166,7 @@ def logout_user():
     if "auth_token" in st.session_state:
         try:
             # Decode token to get user ID
-            payload = jwt.decode(st.session_state.auth_token, st.session_state.AUTH_SECRET_KEY, algorithms=['HS256'])
+            payload = jwt.decode(st.session_state.auth_token, str(st.session_state.AUTH_SECRET_KEY), algorithms=['HS256'])
             user_id = payload.get('user_id')
             
             # Call logout API
@@ -175,7 +175,8 @@ def logout_user():
             
             # Clear token from session state
             del st.session_state.auth_token
-        except:
+        except Exception as e:
+            st.error(f"Logout error: {str(e)}")
             pass
 
 # Start authentication server when module is imported
