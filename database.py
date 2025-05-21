@@ -387,6 +387,8 @@ def fetch_job_skills(top_n=None, skill_type=None, category=None):
     Returns:
         list: Job skills matching the criteria
     """
+    # For the demo, return empty list so each user starts fresh
+    return []
     try:
         session = Session()
         # Base query
