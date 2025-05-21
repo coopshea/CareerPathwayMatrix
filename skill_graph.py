@@ -1024,14 +1024,44 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
             # Get job skills from database
             from database import fetch_job_skills
             
+            # Check if we have job postings in session state
+            has_job_postings = "job_postings" in st.session_state and len(st.session_state.job_postings) > 0
+            
             # Fetch job skills for visualization
             job_skills = fetch_job_skills(top_n=top_n, skill_type=skill_type_param, category=category_param)
             
-            if not job_skills:
-                st.info("No job skills found in the database. Try uploading some job postings first.")
+            # We'll also use skills from session state job postings
+            session_job_skills = []
+            if has_job_postings:
+                # Extract skills from job postings in session state
+                for job in st.session_state.job_postings:
+                    if "required_skills" in job:
+                        for skill in job["required_skills"]:
+                            session_job_skills.append({
+                                "name": skill,
+                                "frequency": 5,
+                                "job_count": 1,
+                                "skill_type": "required",
+                                "job_id": job.get("title", "Unknown Job")
+                            })
+                    if "preferred_skills" in job:
+                        for skill in job["preferred_skills"]:
+                            session_job_skills.append({
+                                "name": skill,
+                                "frequency": 3,
+                                "job_count": 1,
+                                "skill_type": "preferred",
+                                "job_id": job.get("title", "Unknown Job")
+                            })
+            
+            # Combine db job skills with session job skills
+            all_job_skills = job_skills + session_job_skills
+            
+            if not all_job_skills and not has_job_postings:
+                st.info("No job skills found. Try uploading some job postings first.")
             else:
-                # Create the skill graph
-                graph = generate_skill_graph(st.session_state.user_skills, job_skills)
+                # Create the skill graph - use the combined skills
+                graph = generate_skill_graph(st.session_state.user_skills, all_job_skills)
                 
                 # Create the interactive visualization
                 net = create_interactive_graph(graph)
