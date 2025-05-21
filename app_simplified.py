@@ -57,7 +57,7 @@ def render_welcome_tab():
     st.subheader("Watch the tutorial")
     # URL can be YouTube, Vimeo, or a direct video file
     # For demo purposes, using a placeholder YouTube URL until the actual video is recorded
-    video_url = "https://youtu.be/B2iAodr0fOo"  # Replace with actual video when available
+    video_url = "https://youtu.be/3DmFuxVJcbA"  # Replace with actual video when available
     st.video(video_url)
     
     # AI chat assistant
