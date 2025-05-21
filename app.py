@@ -390,9 +390,6 @@ def main():
     # Handle authentication callback if present in URL
     handle_auth_callback()
     
-    # Render authentication UI in sidebar
-    render_auth_ui()
-    
     # Main header
     st.markdown("""
         <div style='text-align: center'>
@@ -400,6 +397,18 @@ def main():
             <h3>Find your path, build your skills, achieve your career goals</h3>
         </div>
     """, unsafe_allow_html=True)
+    
+    # Render authentication UI more prominently above tabs
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if is_authenticated():
+            user = get_current_user()
+            st.success(f"Logged in as {user.get('username', 'User')}")
+            st.button("Logout", key="logout_main", on_click=logout)
+        else:
+            auth_url = get_auth_url()
+            st.warning("You are not logged in")
+            st.markdown(f"<div style='text-align: center'><a href='{auth_url}' style='background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 10px 0;'>Login with Replit</a></div>", unsafe_allow_html=True)
     
     tabs = st.tabs([
         "Welcome",

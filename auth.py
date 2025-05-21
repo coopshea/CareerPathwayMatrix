@@ -96,15 +96,16 @@ def auth_required(func):
 
 def render_auth_ui():
     """Render authentication UI in the sidebar"""
+    # Create a more visible auth section at the top of the sidebar
     with st.sidebar:
-        st.markdown("---")
+        st.markdown("### 👤 User Authentication")
         if is_authenticated():
             user = get_current_user()
             st.success(f"Logged in as {user.get('username', 'User')}")
-            if st.button("Logout"):
+            if st.button("Logout", key="logout_button"):
                 logout()
                 st.rerun()
         else:
             auth_url = get_auth_url()
             st.warning("You are not logged in")
-            st.markdown(f"[Login with Replit]({auth_url})")
+            st.markdown(f"<div style='text-align: center'><a href='{auth_url}' style='background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 10px 0;'>Login with Replit</a></div>", unsafe_allow_html=True)
