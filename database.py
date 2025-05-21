@@ -529,15 +529,31 @@ def save_user_skills(skills_dict):
     Returns:
         bool: Success or failure
     """
+    # Import here to avoid circular imports
+    import uuid
+    import streamlit as st
+    from user_auth import is_authenticated, get_username
+    
+    # Get user ID - either from auth or create temporary session ID
+    if is_authenticated():
+        user_id = get_username()
+    else:
+        # Create and store a temporary user ID in session state
+        if "temp_user_id" not in st.session_state:
+            st.session_state.temp_user_id = str(uuid.uuid4())
+        user_id = st.session_state.temp_user_id
+    
+    session = None
     try:
         session = Session()
         
-        # First, delete all existing user skills
-        session.query(UserSkill).delete()
+        # Only delete skills for THIS user, not all users
+        session.query(UserSkill).filter(UserSkill.user_id == user_id).delete()
         
-        # Add new skills
+        # Add new skills with the user ID
         for skill_name, skill_data in skills_dict.items():
             skill = UserSkill(
+                user_id=user_id,  # Associate with specific user
                 name=skill_name,
                 rating=skill_data.get('rating', 1),
                 experience=skill_data.get('experience', ''),
@@ -546,7 +562,7 @@ def save_user_skills(skills_dict):
             session.add(skill)
         
         session.commit()
-        print(f"Saved {len(skills_dict)} user skills to database")
+        print(f"Saved {len(skills_dict)} user skills to database for user {user_id}")
         return True
     except Exception as e:
         session.rollback()
@@ -556,23 +572,37 @@ def save_user_skills(skills_dict):
         session.close()
 
 
-def fetch_user_skills():
+def fetch_user_skills(user_id=None):
     """
-    Fetch user skills from the database.
+    Fetch user skills from the database for a specific user.
+    
+    Args:
+        user_id (str, optional): User ID to fetch skills for
     
     Returns:
         dict: Dictionary of user skills
             {skill_name: {rating, experience, projects}}
     """
-    # For the demo version, we'll always return an empty skills dictionary
-    # This ensures each user starts with their own fresh data
-    return {}
+    # Import here to avoid circular imports
+    import uuid
+    import streamlit as st
+    from user_auth import is_authenticated, get_username
     
-    # In a production version, we would fetch skills specific to the authenticated user
-    """
+    if not user_id:
+        # For authenticated users, use their username as ID
+        if is_authenticated():
+            user_id = get_username()
+        else:
+            # For demo, create session-specific ID
+            if "temp_user_id" not in st.session_state:
+                st.session_state.temp_user_id = str(uuid.uuid4())
+            user_id = st.session_state.temp_user_id
+    
+    session = None
     try:
         session = Session()
-        skills = session.query(UserSkill).all()
+        # Query skills only for this specific user
+        skills = session.query(UserSkill).filter(UserSkill.user_id == user_id).all()
         
         # Convert to dictionary
         skills_dict = {}
@@ -583,12 +613,13 @@ def fetch_user_skills():
                 'projects': skill.projects
             }
         
-        session.close()
         return skills_dict
     except Exception as e:
         print(f"Error fetching user skills from database: {e}")
         return {}
-    """
+    finally:
+        if session:
+            session.close()
 
 # Initialize the database and import data
 def init_and_load_data():
