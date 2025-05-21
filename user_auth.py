@@ -1,165 +1,199 @@
 import streamlit as st
 import hashlib
-import time
-import json
 import os
-from database import init_db, Session, User
+from datetime import datetime
+import json
+import secrets
 
-# File to store user data if database is not available
-USER_DATA_FILE = "user_data.json"
+# Create a secrets folder if it doesn't exist
+os.makedirs('.streamlit', exist_ok=True)
 
-class UserAuth:
-    @staticmethod
-    def initialize():
-        """Initialize user authentication system"""
-        # Set up session state for user
-        if "user" not in st.session_state:
-            st.session_state.user = None
-            
-        if "user_data" not in st.session_state:
-            # Try to load from file
-            try:
-                if os.path.exists(USER_DATA_FILE):
-                    with open(USER_DATA_FILE, "r") as f:
-                        st.session_state.user_data = json.load(f)
-                else:
-                    st.session_state.user_data = {}
-            except Exception:
-                st.session_state.user_data = {}
+# Path to store user data
+USER_DB_PATH = '.streamlit/user_db.json'
+
+# Initialize user database
+def init_user_db():
+    if not os.path.exists(USER_DB_PATH):
+        with open(USER_DB_PATH, 'w') as f:
+            json.dump({}, f)
+
+# Load user database
+def load_user_db():
+    init_user_db()
+    try:
+        with open(USER_DB_PATH, 'r') as f:
+            return json.load(f)
+    except:
+        return {}
+
+# Save user database
+def save_user_db(user_db):
+    with open(USER_DB_PATH, 'w') as f:
+        json.dump(user_db, f)
+
+# Hash password
+def hash_password(password, salt=None):
+    if salt is None:
+        salt = secrets.token_hex(16)
+    pw_hash = hashlib.sha256((password + salt).encode()).hexdigest()
+    return pw_hash, salt
+
+# Authentication functions
+def register_user(username, email, password):
+    user_db = load_user_db()
     
-    @staticmethod
-    def login_user_form():
-        """Display login form and handle sign-in"""
-        # Create two columns for the form
-        col1, col2 = st.columns([3, 1])
+    # Check if username already exists
+    if any(user_db[user_id].get('username') == username for user_id in user_db):
+        return False, "Username already exists"
+    
+    # Create user ID
+    user_id = hashlib.md5(username.encode()).hexdigest()
+    
+    # Hash password with salt
+    pw_hash, salt = hash_password(password)
+    
+    # Add user to database
+    user_db[user_id] = {
+        'username': username,
+        'email': email,
+        'password_hash': pw_hash,
+        'salt': salt,
+        'created_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        'last_login': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+    
+    save_user_db(user_db)
+    return True, user_id
+
+def login_user(username, password):
+    user_db = load_user_db()
+    
+    # Find user by username
+    user_id = None
+    for uid, user_data in user_db.items():
+        if user_data.get('username') == username:
+            user_id = uid
+            break
+    
+    if not user_id:
+        return False, "Invalid username or password"
+    
+    # Check password
+    salt = user_db[user_id]['salt']
+    pw_hash, _ = hash_password(password, salt)
+    
+    if pw_hash != user_db[user_id]['password_hash']:
+        return False, "Invalid username or password"
+    
+    # Update last login
+    user_db[user_id]['last_login'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    save_user_db(user_db)
+    
+    return True, user_id
+
+def is_authenticated():
+    return 'user_id' in st.session_state
+
+def get_current_user():
+    if is_authenticated():
+        user_db = load_user_db()
+        user_id = st.session_state['user_id']
+        if user_id in user_db:
+            return user_db[user_id]
+    return None
+
+def get_username():
+    user = get_current_user()
+    if user:
+        return user.get('username')
+    return None
+
+def get_email():
+    user = get_current_user()
+    if user:
+        return user.get('email')
+    return None
+
+def logout_user():
+    if 'user_id' in st.session_state:
+        del st.session_state['user_id']
+
+# Auth UI components
+def auth_signup_form():
+    with st.form("signup_form"):
+        st.subheader("Create an Account")
+        username = st.text_input("Username", key="signup_username")
+        email = st.text_input("Email", key="signup_email")
+        password = st.text_input("Password", type="password", key="signup_password")
+        confirm_password = st.text_input("Confirm Password", type="password", key="confirm_password")
         
-        with col1:
-            st.subheader("Sign in to personalize your experience")
-            
-            # Create the sign-in form
-            with st.form("login_form"):
-                full_name = st.text_input("Full Name")
-                email = st.text_input("Email")
-                
-                submitted = st.form_submit_button("Sign In")
-                
-                if submitted:
-                    # Simple validation
-                    if not full_name or not email or "@" not in email:
-                        st.error("Please enter a valid name and email address.")
-                        return False
-                    
-                    # Create a simple hash for the user identifier
-                    user_id = hashlib.md5(email.encode()).hexdigest()
-                    
-                    # Store user information
-                    user_info = {
-                        "id": user_id,
-                        "name": full_name,
-                        "email": email,
-                        "created_at": time.time(),
-                        "last_login": time.time()
-                    }
-                    
-                    # Save to session state
-                    st.session_state.user = user_info
-                    
-                    # Save to persistent storage
-                    UserAuth._save_user(user_info)
-                    
-                    # Rerun to update UI
-                    st.success(f"Welcome, {full_name}!")
-                    st.rerun()
-                    
-                    return True
-            
-            return False
+        submit = st.form_submit_button("Sign Up")
         
-        with col2:
-            st.markdown("""
-            ### Why Sign In?
+        if submit:
+            if password != confirm_password:
+                st.error("Passwords don't match")
+                return False
             
-            Signing in allows us to:
-            - Save your career preferences
-            - Store your uploaded resume
-            - Provide personalized recommendations
-            - Remember your chat history
-            
-            We don't share your data with third parties.
-            """)
-    
-    @staticmethod
-    def display_user_info():
-        """Display current user information and logout button"""
-        if st.session_state.user is not None:
-            col1, col2 = st.columns([3, 1])
-            
-            with col1:
-                st.markdown(f"**Signed in as:** {st.session_state.user['name']} ({st.session_state.user['email']})")
-            
-            with col2:
-                if st.button("Sign Out"):
-                    st.session_state.user = None
-                    st.rerun()
-    
-    @staticmethod
-    def get_current_user():
-        """Get the current user information"""
-        return st.session_state.user
-    
-    @staticmethod
-    def is_authenticated():
-        """Check if a user is currently authenticated"""
-        return st.session_state.user is not None
-    
-    @staticmethod
-    def logout():
-        """Log out the current user"""
-        st.session_state.user = None
-    
-    @staticmethod
-    def _save_user(user_info):
-        """Save user information to persistent storage"""
-        try:
-            # Connect to database
-            session = Session()
-            
-            # Check if user already exists
-            db_user = session.query(User).filter(User.id == user_info['id']).first()
-            
-            if db_user:
-                # Update existing user
-                db_user.name = user_info['name']
-                db_user.email = user_info['email']
-                # Convert to float to ensure compatibility
-                db_user.last_login = float(time.time())
+            success, message = register_user(username, email, password)
+            if success:
+                st.success("Account created successfully! Please log in.")
+                return True
             else:
-                # Create new user
-                db_user = User(
-                    id=user_info['id'],
-                    name=user_info['name'],
-                    email=user_info['email'],
-                    created_at=time.time(),
-                    last_login=time.time()
-                )
-                session.add(db_user)
-            
-            # Commit changes
-            session.commit()
-            session.close()
-        except Exception as e:
-            print(f"Error saving user to database: {e}")
-            # If database fails, fall back to file storage
-            try:
-                # Update user data in session state
-                st.session_state.user_data[user_info['id']] = user_info
-                
-                # Save to file
-                with open(USER_DATA_FILE, "w") as f:
-                    json.dump(st.session_state.user_data, f)
-            except Exception:
-                # If all fails, just keep in session state
-                pass
+                st.error(message)
+                return False
 
-# Initialize user auth on import
-UserAuth.initialize()
+def auth_login_form():
+    with st.form("login_form"):
+        st.subheader("Login")
+        username = st.text_input("Username", key="login_username")
+        password = st.text_input("Password", type="password", key="login_password")
+        
+        submit = st.form_submit_button("Login")
+        
+        if submit:
+            success, user_id_or_error = login_user(username, password)
+            if success:
+                st.session_state['user_id'] = user_id_or_error
+                st.success("Logged in successfully!")
+                return True
+            else:
+                st.error(user_id_or_error)
+                return False
+
+def auth_form():
+    tab1, tab2 = st.tabs(["Login", "Sign Up"])
+    
+    with tab1:
+        login_success = auth_login_form()
+        if login_success:
+            st.rerun()
+    
+    with tab2:
+        signup_success = auth_signup_form()
+        if signup_success:
+            st.info("Account created! Please use the Login tab to sign in.")
+
+def auth_widget():
+    if is_authenticated():
+        user = get_current_user()
+        if user:
+            st.write(f"Logged in as **{user['username']}**")
+            
+            if st.button("Logout", key="logout_button"):
+                logout_user()
+                st.rerun()
+        else:
+            # Handle case where user_id exists but user data doesn't
+            logout_user()
+            st.warning("Session expired. Please log in again.")
+            auth_form()
+    else:
+        auth_form()
+
+# Function to protect premium features
+def premium_feature_gate():
+    if not is_authenticated():
+        st.warning("This is a premium feature. Please sign in to access.")
+        auth_widget()
+        return False
+    return True

@@ -12,6 +12,7 @@ from visualizations import create_matrix_visualization
 from recommendations import calculate_pathway_matches
 from skill_graph import skill_graph_page
 from utils import create_pathway_card, DEFAULT_IMAGES
+from user_auth import is_authenticated, auth_widget, auth_form, premium_feature_gate
 
 # 1) Central container for all user inputs & uploads
 @dataclass
@@ -56,7 +57,7 @@ def render_welcome_tab():
     st.subheader("Watch the tutorial")
     # URL can be YouTube, Vimeo, or a direct video file
     # For demo purposes, using a placeholder YouTube URL until the actual video is recorded
-    video_url = "https://youtu.be/3DmFuxVJcbA"  # Replace with actual video when available
+    video_url = "https://youtu.be/B2iAodr0fOo"  # Replace with actual video when available
     st.video(video_url)
     
     # AI chat assistant
@@ -395,6 +396,45 @@ def main():
         </div>
     """, unsafe_allow_html=True)
     
+    # Check if user is authenticated
+    if not is_authenticated():
+        st.markdown("""
+            <div style='text-align: center'>
+                <h4>Welcome to CareerPath Navigator!</h4>
+                <p>Please sign in or create an account to access all features.</p>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        # Add login form
+        auth_form()
+        
+        # Show a preview of what the app offers
+        st.markdown("---")
+        st.markdown("### What CareerPath Navigator Offers:")
+        
+        # Create columns for feature highlights
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.markdown("#### 🧩 Skill Graph")
+            st.markdown("Visualize your skills and identify gaps")
+            
+        with col2:
+            st.markdown("#### 📂 Project Portfolio")
+            st.markdown("Track and showcase your projects")
+            
+        with col3:
+            st.markdown("#### 🔍 Career Pathways")
+            st.markdown("Discover and plan your career journey")
+            
+        # Stop execution if not authenticated
+        st.stop()
+    
+    # User is authenticated - show auth widget (with logout button)
+    st.sidebar.markdown("### Account")
+    auth_widget()
+    
+    # Display main content
     tabs = st.tabs([
         "Welcome",
         "Skill Graph",
