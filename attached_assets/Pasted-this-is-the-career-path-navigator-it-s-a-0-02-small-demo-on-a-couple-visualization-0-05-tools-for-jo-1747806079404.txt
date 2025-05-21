@@ -1,0 +1,275 @@
+this is the career path navigator it's a
+0:02
+small demo on a couple visualization
+0:05
+tools for job hunting based on some of
+0:08
+the parts that I found really unpleasant
+0:11
+so the basic idea
+0:13
+is to go from your background where you
+0:16
+are currently to where you want to be
+0:17
+and help map the area between um and
+0:21
+streamline that process and make sure
+0:23
+that the job seeker is is focused and on
+0:26
+task and working in the most efficient
+0:29
+way possible to move towards their goals
+0:31
+as quickly as
+0:33
+possible so in line with that the
+0:36
+functionality is based around a skill
+0:38
+map so you'll upload a resume personal
+0:41
+writing portfolio you name it and it'll
+0:44
+go ahead and extract all the text and
+0:47
+also extract and rate your skills in
+0:50
+different areas so for me it's a lot of
+0:51
+random uh engineering
+0:53
+work and you do the exact same thing for
+0:56
+jobs you're excited about so I went
+0:59
+ahead and I added a product manager
+1:01
+consumer growth position at Anthropic
+1:04
+and it correctly recognizes I don't have
+1:06
+a lot of the background for this
+1:09
+so the challenge I found personally is
+1:11
+there are a lot of jobs I'm potentially
+1:13
+really excited about but don't really
+1:15
+have a lot of the background for and
+1:18
+don't really know exactly how to get
+1:19
+there so this is designed to to help
+1:21
+move you in that direction and
+1:23
+understand what what you're missing and
+1:25
+how to get there
+1:27
+so it'll create a map of your background
+1:31
+uh your skills and it'll also create a
+1:34
+map of the requirements they're looking
+1:36
+for and anywhere there's some overlap so
+1:38
+in this case some Python understanding
+1:41
+it will connect the dots now ultimately
+1:44
+the the vision is to use this tool to be
+1:46
+able to interpolate so let's say
+1:49
+I need some practice with doing
+1:52
+technical demonstrations so I mean I
+1:55
+guess that's kind of what I'm doing
+1:56
+right now but you can go ahead and add
+1:59
+your own experiences uh to the to the
+2:01
+skill skill road map um and and populate
+2:05
+them in or you can go ahead and and have
+2:09
+the tool help uh interpolate for you so
+2:11
+what it'll do is if you say upload three
+2:13
+four or five jobs anything that shows up
+2:16
+multiple times it will highlight as you
+2:18
+know really valuable it's really worth
+2:20
+your time to learn SQL if that shows up
+2:22
+in every job you want to work at so as
+2:25
+someone who wants to develop into roles
+2:28
+they may not be you know totally
+2:29
+prepared for this helps you plot a
+2:31
+course uh you know the the most
+2:33
+efficient course for for gaining those
+2:35
+skills and being
+2:37
+prepared so it will allow you to you
+2:40
+know you know interpolate that's kind of
+2:42
+the whole function of this area
+2:45
+now the second feature which hopefully I
+2:47
+haven't grayed out for this entire demo
+2:50
+is a portfolio uh so it allows you to
+2:54
+essentially showcase mastery of
+2:56
+different skills or different things
+2:57
+you're learning you know record the
+2:59
+project the description add any GitHub
+3:02
+or images PowerPoint whatever whatever
+3:04
+to uh to showcase your work and the
+3:08
+purpose of this is not to have a
+3:10
+beautiful portfolio website uh to share
+3:12
+but to prepare for an interview so let's
+3:16
+say I I got an interview for that job I
+3:18
+was excited about i've populated in a
+3:20
+bunch of
+3:21
+projects what I can do is really hone
+3:23
+the story I want to tell my experiences
+3:26
+what I learned how I faced problems and
+3:28
+solve them um you know how I am as a
+3:30
+team player all that kind of stuff and
+3:31
+it enables you to to really have that
+3:33
+story down before you go into an
+3:35
+interview and have it all in a
+3:37
+centralized location so yeah there'll be
+3:39
+you know whatever portfolio projects you
+3:40
+add you can go and review those now the
+3:43
+long-term vision is to take something
+3:45
+like that and hook it up to an interview
+3:46
+coach something that knows where you
+3:48
+want to work it knows your background
+3:50
+and it can act as an interviewer and
+3:53
+help you gain that confidence uh in the
+3:55
+roles uh that you're looking to uh to
+3:59
+apply for
+4:02
+the uh you know other features we're
+4:04
+looking at are a job tracker just a
+4:06
+centralized hub for what you've applied
+4:08
+for maybe with a Gmail integration you
+4:10
+know make sure that you're not missing
+4:12
+any outbound that kind of thing and then
+4:14
+also there is a a third aspect which is
+4:16
+this find your pathway tool which is
+4:20
+rather than kind of a mapping of your
+4:22
+background and your skills to a a job
+4:24
+you've picked this is more exploratory
+4:25
+so it has a repository of a bunch of
+4:28
+different jobs ranked on different
+4:29
+metrics like risk or you know being
+4:32
+pigeonholed into a certain skill set or
+4:34
+you know pay
+4:36
+uh maybe like uh mission for climate or
+4:40
+uh medicine or something else and it
+4:43
+enables you to input you know through a
+4:45
+questionnaire some of your own values
+4:47
+your own background and then it will
+4:49
+kind of give you a score of how
+4:51
+important those things are to you based
+4:52
+on what you filled out and what that
+4:54
+enables is this other tool which is this
+4:56
+2x two matrix tool that can kind of map
+4:59
+you to things you maybe hadn't
+5:00
+considered that really match your
+5:02
+background who you are personally the
+5:04
+kind of you know pay you require
+5:06
+whatever so that's kind of the the plan
+5:09
+for this and uh really excited to have
+5:12
+everyone try it out and get feedback
+5:14
+it's a definitely a demo so excited to
+5:16
+have everyone break it and and uh help
+5:19
+build it with me
+5:21
+so have fun
