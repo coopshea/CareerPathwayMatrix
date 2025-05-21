@@ -1,49 +1,7 @@
 import streamlit as st
-import os
-from urllib.parse import urlencode
 
 # Set page config at the very beginning
 st.set_page_config(page_title="CareerPath Navigator", layout="wide")
-
-# Replit Auth integration
-def is_replit_environment():
-    """Check if running on Replit"""
-    return os.environ.get('REPL_ID') is not None and os.environ.get('REPL_OWNER') is not None
-
-def auth_required():
-    """
-    Handle authentication for the Streamlit app using Replit Auth.
-    Returns True if authenticated or not on Replit, False otherwise.
-    """
-    # If not on Replit, skip authentication for local development
-    if not is_replit_environment():
-        return True
-    
-    # Check for Replit Auth cookie in session state
-    if 'authenticated' in st.session_state and st.session_state.authenticated:
-        return True
-    
-    # Check for X-Replit-User-Name header set by Replit Auth
-    # In Streamlit, we can't access headers directly, so we'll use query params
-    query_params = st.experimental_get_query_params()
-    if 'replit_user' in query_params:
-        st.session_state.authenticated = True
-        st.session_state.username = query_params['replit_user'][0]
-        return True
-    
-    # Not authenticated, show login button
-    st.markdown("## Please login to use CareerPath Navigator")
-    
-    login_url = "https://replit.com/auth_with_repl_site"
-    domain = os.environ.get('REPL_SLUG', '') + ".replit.app"
-    params = {
-        'domain': domain,
-        'redirect': f"https://{domain}/?replit_user=$REPL_OWNER"
-    }
-    full_login_url = f"{login_url}?{urlencode(params)}"
-    
-    st.markdown(f"[Login with Replit]({full_login_url})")
-    return False
 
 from dataclasses import dataclass, asdict, field
 from typing import Optional, Dict, Any, List
@@ -428,19 +386,6 @@ def render_skill_graph_tab():
     skill_graph_page()
 
 def main():
-    # Check authentication first
-    if not auth_required():
-        return  # Stop rendering if not authenticated
-
-    # Show username if authenticated in the sidebar
-    if 'username' in st.session_state:
-        st.sidebar.markdown(f"### 👤 Welcome, {st.session_state.username}!")
-        if st.sidebar.button("Logout"):
-            # Clear authentication
-            for key in list(st.session_state.keys()):
-                if key in ['authenticated', 'username']:
-                    del st.session_state[key]
-            st.rerun()
     
     # Main header
     st.markdown("""
