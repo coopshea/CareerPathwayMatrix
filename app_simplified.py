@@ -62,7 +62,7 @@ def render_welcome_tab():
     
     # AI chat assistant
     st.markdown("---")
-    st.markdown("### Not sure where to start? Ask our AI Career Assistant")
+    st.markdown("### Not sure where to start?")
 
     # Initialize chat messages if not already in session state
     if "messages" not in st.session_state:
@@ -79,7 +79,7 @@ def render_welcome_tab():
     # Display chat messages
     with chat_container:
         # Create a scrollable area for messages with a fixed height
-        st.markdown('<div style="height: 400px; overflow-y: auto;">', unsafe_allow_html=True)
+        st.markdown('<div style="height: 400px; overflow-n: auto;">', unsafe_allow_html=True)
         
         # Display chat messages from history
         for message in st.session_state.messages:
