@@ -131,19 +131,56 @@ def render_welcome_tab():
                             Keep responses friendly, concise and helpful."""}
                         ]
                         
-                        # Add the conversation history
-                        for message in st.session_state.messages:
-                            messages.append({"role": message["role"], "content": message["content"]})
+                        # Create messages list for OpenAI API
+                        api_messages = [{
+                            "role": "system", 
+                            "content": """You are a helpful career assistant in the CareerPath Navigator application. 
+                            
+                            App Features:
+                            - 2x2 Matrix: For comparing career paths visually on different dimensions
+                            - Find Your Pathway: For matching user preferences to career options
+                            - AI Roadmap: For generating personalized learning roadmaps
+                            - Job Posting Analysis: For analyzing job opportunities and skill requirements
+                            - Skill Graph: For analyzing user skills and identifying gaps
+                            - Portfolio: For organizing projects to showcase skills and prepare for interviews
+                            
+                            About the app (based on demo transcript):
+                            The CareerPath Navigator helps users navigate from their current career position to where they want to be. It extracts skills from resumes and compares them with job requirements, creating visual skill maps that show overlaps and gaps. The tool also helps users find the most efficient path to gain new skills for jobs they're interested in. The portfolio feature allows users to document projects demonstrating their skills which helps them prepare compelling stories for interviews.
+                            
+                            Keep responses friendly, concise and helpful."""
+                        }]
                         
-                        # Generate a response
+                        # Add conversation history
+                        for msg in st.session_state.messages:
+                            if msg["role"] in ["user", "assistant"]:
+                                api_messages.append({
+                                    "role": msg["role"], 
+                                    "content": msg["content"]
+                                })
+                        
+                        # Get response from OpenAI
                         response = client.chat.completions.create(
-                            model="gpt-4o", 
-                            messages=messages,
+                            model="gpt-4o",
+                            messages=api_messages,
                             temperature=0.7,
                             max_tokens=500
                         )
                         
                         full_response = response.choices[0].message.content
+                        
+                        # Create a streaming effect
+                        import time
+                        
+                        # Check if full_response is not None before iterating
+                        if full_response:
+                            displayed_response = ""
+                            for char in full_response:
+                                displayed_response += char
+                                response_placeholder.markdown(displayed_response + "▌")
+                                time.sleep(0.005)  # Small delay to simulate typing
+                                
+                            # Final message without cursor
+                            response_placeholder.markdown(full_response)
                         
                     else:
                         # Fallback response if no API key
@@ -156,8 +193,9 @@ def render_welcome_tab():
                 # Display the response
                 response_placeholder.markdown(full_response)
                 
-                # Add assistant response to chat history
-                st.session_state.messages.append({"role": "assistant", "content": full_response})
+                # Add assistant response to chat history (ensure content is not None)
+                if full_response is not None:
+                    st.session_state.messages.append({"role": "assistant", "content": full_response})
         
         # Rerun the app to show the updated chat immediately
         st.rerun()
