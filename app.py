@@ -12,6 +12,7 @@ from visualizations import create_matrix_visualization
 from recommendations import calculate_pathway_matches
 from skill_graph import skill_graph_page
 from utils import create_pathway_card, DEFAULT_IMAGES
+from auth import render_auth_ui, handle_auth_callback, is_authenticated
 
 # 1) Central container for all user inputs & uploads
 @dataclass
@@ -386,6 +387,11 @@ def render_skill_graph_tab():
     skill_graph_page()
 
 def main():
+    # Handle authentication callback if present in URL
+    handle_auth_callback()
+    
+    # Render authentication UI in sidebar
+    render_auth_ui()
     
     # Main header
     st.markdown("""
