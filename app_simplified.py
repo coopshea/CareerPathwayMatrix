@@ -60,45 +60,62 @@ def render_welcome_tab():
     video_url = "https://youtu.be/3DmFuxVJcbA"  # Replace with actual video when available
     st.video(video_url)
     
-    # AI chat assistant
+    # AI chat assistant - more compact, positioned closer to the content
     st.markdown("---")
-    st.markdown("### Not sure where to start?")
-
-    # Initialize chat messages if not already in session state
-    if "messages" not in st.session_state:
-        st.session_state.messages = [
-            {"role": "assistant", "content": "Hello! I'm your AI career assistant. How can I help you today?"}
-        ]
-
-    # Create a container for the chat interface
-    chat_container = st.container()
+    st.markdown("### Not sure where to start? Ask our AI Career Assistant")
     
-    # Create a container for the input at the bottom
-    input_container = st.container()
+    # Create a compact chat box
+    chat_box = st.container()
     
-    # Display chat messages
-    with chat_container:
-        # Create a scrollable area for messages with a fixed height
-        st.markdown('<div style="height: 400px; overflow-n: auto;">', unsafe_allow_html=True)
+    # Use columns to create a compact layout
+    with chat_box:
+        # Create a fixed-height chat container
+        chat_area = st.container()
         
-        # Display chat messages from history
+        # Initialize chat messages if not already in session state
+        if "messages" not in st.session_state:
+            st.session_state.messages = [
+                {"role": "assistant", "content": "Hello! I'm your AI career assistant. How can I help you today?"}
+            ]
+            
+        # Create a css-styled chat container with fixed height
+        st.markdown("""
+        <style>
+        .chat-container {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            background-color: #f9f9f9;
+            margin-bottom: 10px;
+        }
+        </style>
+        <div class="chat-container"></div>
+        """, unsafe_allow_html=True)
+        
+        # Display all messages in session state
         for message in st.session_state.messages:
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
                 
-        st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Place the chat input at the bottom
-    with input_container:
+        # Add the chat input below
         prompt = st.chat_input("What would you like to know about your career options?")
     
-    # Process user input
+    # Process user input and generate response
     if prompt:
-        # Add user message to chat history
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        
-        # Add empty assistant message placeholder
-        with chat_container:
+        # Since we're using st.rerun(), we need to add the user message to session state and then rerun
+        # to display it before generating the AI response
+        if "processing_message" not in st.session_state or not st.session_state.processing_message:
+            # First pass - add user message and set processing flag
+            st.session_state.messages.append({"role": "user", "content": prompt})
+            st.session_state.processing_message = True
+            st.rerun()
+        else:
+            # Second pass - generate and display AI response
+            st.session_state.processing_message = False
+            
+            # Create a placeholder for the assistant's response
             with st.chat_message("assistant"):
                 message_placeholder = st.empty()
                 
@@ -128,10 +145,10 @@ def render_welcome_tab():
                         
                         Keep responses friendly, concise and helpful."""
                         
-                        # Prepare messages for API call
+                        # Create a list of messages for the API
                         messages = [{"role": "system", "content": context}]
                         
-                        # Add chat history (only user and assistant messages)
+                        # Add previous messages
                         for msg in st.session_state.messages:
                             if msg["role"] in ["user", "assistant"]:
                                 messages.append({"role": msg["role"], "content": msg["content"]})
@@ -164,7 +181,7 @@ def render_welcome_tab():
                         # Fallback if no API key
                         fallback_response = "I'm here to help you navigate your career options! You can explore different paths in the tabs above, or ask me specific questions about career transitions, skill development, or job hunting strategies."
                         
-                        # Display typed fallback response
+                        # Display with typing effect
                         displayed_text = ""
                         for char in fallback_response:
                             displayed_text += char
@@ -183,9 +200,8 @@ def render_welcome_tab():
                     message_placeholder.markdown(error_response)
                     st.session_state.messages.append({"role": "assistant", "content": error_response})
                     print(f"Error in chat: {str(e)}")
-        
-        # Rerun to update the UI
-        st.rerun()
+                    
+            # No need to rerun again
 
 def render_portfolio_tab():
     st.header("📂 Project Portfolio")
