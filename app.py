@@ -1,10 +1,17 @@
 import streamlit as st
+import os
+import hashlib
+import json
+from datetime import datetime
+
+# Import our custom auth
+from user_auth import (
+    is_authenticated, get_username, get_email, 
+    auth_widget, premium_feature_gate
+)
 
 # Set page config at the very beginning
 st.set_page_config(page_title="CareerPath Navigator", layout="wide")
-
-# Import authentication module
-from auth import check_login, get_user_info, logout_user, ensure_server_running
 
 from dataclasses import dataclass, asdict, field
 from typing import Optional, Dict, Any, List
@@ -44,21 +51,29 @@ pathways_df, metrics_data, categories = load_all()
 
 # 4) Page‐by‐page renderers
 def render_welcome_tab():
-
-    # Motivational introduction
-    st.markdown("""
-    ### Finding Your Path Forward
+    # Create columns for layout
+    col1, col2 = st.columns([3, 1])
     
-    Feeling stuck in your current role? Excited about exploring a new industry but not sure where to start? 
+    with col1:
+        st.markdown("## Welcome to CareerPath Navigator")
+        
+        # Motivational introduction
+        st.markdown("""
+        ### Finding Your Path Forward
+        
+        Feeling stuck in your current role? Excited about exploring a new industry but not sure where to start? 
+        
+        **CareerPath Navigator** is designed to bridge the gap between 
+        where you are now and where you want to be.
+        """)
     
-    **CareerPath Navigator** is designed to bridge the gap between 
-    where you are now and where you want to be.
-    """)
+    with col2:
+        # Display login/user info
+        auth_widget()
     
     # Video tutorial/introduction
     st.subheader("Watch the tutorial")
     # URL can be YouTube, Vimeo, or a direct video file
-    # For demo purposes, using a placeholder YouTube URL until the actual video is recorded
     video_url = "https://youtu.be/B2iAodr0fOo"  # Replace with actual video when available
     st.video(video_url)
     
@@ -66,23 +81,28 @@ def render_welcome_tab():
     st.markdown("---")
     st.markdown("### Not sure where to start? Ask our AI Career Assistant")
     
-    # Add data reset functionality - Just the button with simpler implementation
-    st.markdown("---")
-    st.subheader("Reset Your Data")
-    st.write("If you want to start fresh or remove your personal data, you can reset the application data here.")
-    
-    reset_col1, reset_col2 = st.columns([3, 1])
-    with reset_col1:
-        st.warning("This will clear all your skills, uploaded files, and saved learning plans. This cannot be undone.")
-    with reset_col2:
-        if st.button("Reset All Data"):
-            # Just clear session state completely and reinitialize
-            for key in list(st.session_state.keys()):
-                del st.session_state[key]
-            
-            # Refresh the page
-            st.success("All data has been reset! The page will refresh momentarily.")
-            st.rerun()
+    # Add data reset functionality if authenticated
+    if is_authenticated():
+        st.markdown("---")
+        st.subheader("Reset Your Data")
+        st.write("If you want to start fresh or remove your personal data, you can reset the application data here.")
+        
+        reset_col1, reset_col2 = st.columns([3, 1])
+        with reset_col1:
+            st.warning("This will clear all your skills, uploaded files, and saved learning plans. This cannot be undone.")
+        with reset_col2:
+            if st.button("Reset All Data"):
+                # Clear session state except auth
+                for key in list(st.session_state.keys()):
+                    if key != "user_id":  # Keep user auth
+                        try:
+                            del st.session_state[key]
+                        except:
+                            pass
+                
+                # Refresh the page
+                st.success("All data has been reset! The page will refresh momentarily.")
+                st.rerun()
     
     # Initialize chat messages if not already in session state
     if "messages" not in st.session_state:
@@ -389,8 +409,6 @@ def render_skill_graph_tab():
     skill_graph_page()
 
 def main():
-    # Make sure auth server is running
-    ensure_server_running()
     
     # Main header
     st.markdown("""
@@ -399,89 +417,6 @@ def main():
             <h3>Find your path, build your skills, achieve your career goals</h3>
         </div>
     """, unsafe_allow_html=True)
-    
-    # Add a small login status indicator in the header
-    col1, col2 = st.columns([3, 1])
-    
-    with col2:
-        is_logged_in = check_login()
-        
-        if is_logged_in:
-            user = get_user_info()
-            if user is not None:
-                user_name = user.get('name', 'User')
-                login_status = f"✓ Logged in as {user_name}"
-            else:
-                login_status = "✓ Logged in"
-            
-            # Show Account Menu button
-            if st.button("Account Menu"):
-                if 'show_account_menu' not in st.session_state:
-                    st.session_state.show_account_menu = True
-                else:
-                    st.session_state.show_account_menu = not st.session_state.show_account_menu
-                st.rerun()
-        else:
-            login_status = "⊗ Not logged in"
-            
-            # Small Login button
-            if st.button("Login"):
-                st.session_state.show_account_menu = True
-                st.rerun()
-                
-        st.write(login_status)
-    
-    # Authentication section - only show when toggled
-    if st.session_state.get('show_account_menu', False):
-        with st.expander("📋 User Account", expanded=True):
-            # Check if user is logged in
-            if is_logged_in:
-                user = get_user_info()
-                if user is not None:
-                    st.success(f"Welcome, {user.get('name', 'User')}!")
-                    
-                    # Show profile info
-                    st.write(f"Username: {user.get('username', '')}")
-                    
-                    # Profile image if available
-                    profile_img = user.get('profileImage', '')
-                    if profile_img:
-                        st.image(profile_img, width=100)
-                else:
-                    st.success("You are logged in!")
-                
-                # Logout button
-                if st.button("Logout", key="logout_btn"):
-                    logout_user()
-                    st.session_state.show_account_menu = False
-                    st.rerun()
-            else:
-                st.warning("You are not logged in.")
-                auth_url = "http://localhost:8000/auth/login"
-                
-                st.markdown(f"""
-                <a href="{auth_url}" target="_self">
-                    <button style="
-                        background-color: #4169E1;
-                        color: white;
-                        padding: 8px 16px;
-                        border-radius: 4px;
-                        border: none;
-                        cursor: pointer;
-                        font-size: 14px;
-                        font-weight: bold;
-                    ">
-                        Login with Replit
-                    </button>
-                </a>
-                """, unsafe_allow_html=True)
-                
-                st.write("Login to save your progress and access premium features.")
-            
-            # Close menu button
-            if st.button("Close Menu"):
-                st.session_state.show_account_menu = False
-                st.rerun()
     
     tabs = st.tabs([
         "Welcome",
@@ -564,21 +499,37 @@ def main():
         
         # Add data reset functionality to About tab as well
         st.markdown("---")
-        st.subheader("Reset Your Data")
-        st.write("If you want to start fresh or remove your personal data, you can reset the application data here.")
         
-        reset_col1, reset_col2 = st.columns([3, 1])
-        with reset_col1:
-            st.warning("This will clear all your skills, uploaded files, and saved learning plans. This cannot be undone.")
-        with reset_col2:
-            if st.button("Reset All Data", key="reset_data_about"):
-                # Just clear session state completely
-                for key in list(st.session_state.keys()):
-                    del st.session_state[key]
-                
-                # Refresh the page
-                st.success("All data has been reset! The page will refresh momentarily.")
-                st.rerun()
+        # Create columns for account info
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            st.subheader("Your Account")
+            # Display login widget if not authenticated
+            auth_widget()
+        
+        # Only show reset functionality if authenticated
+        if is_authenticated():
+            st.markdown("---")
+            st.subheader("Reset Your Data")
+            st.write("If you want to start fresh or remove your personal data, you can reset the application data here.")
+            
+            reset_col1, reset_col2 = st.columns([3, 1])
+            with reset_col1:
+                st.warning("This will clear all your skills, uploaded files, and saved learning plans. This cannot be undone.")
+            with reset_col2:
+                if st.button("Reset All Data", key="reset_data_about"):
+                    # Clear session state except auth
+                    for key in list(st.session_state.keys()):
+                        if key != "user_id":  # Keep user auth
+                            try:
+                                del st.session_state[key]
+                            except:
+                                pass
+                    
+                    # Refresh the page
+                    st.success("All data has been reset! The page will refresh momentarily.")
+                    st.rerun()
 
 if __name__ == "__main__":
     main()
