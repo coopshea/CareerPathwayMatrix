@@ -55,36 +55,26 @@ def render_welcome_tab():
     where you are now and where you want to be.
     """)
     
-    # AI chat assistant - moved up for better visibility
-    st.markdown("### 💬 Not sure where to start? Ask me!")
-
+    # AI chat assistant - compact and prominent
+    st.markdown("### 💬 Ask your AI career assistant")
+    
     # Initialize chat messages if not already in session state
     if "messages" not in st.session_state:
         st.session_state.messages = [
-            {"role": "assistant", "content": "Hello! I'm your AI career assistant. How can I help you today?"}
+            {"role": "assistant", "content": "Hi! I'm here to help with your career questions. What would you like to know?"}
         ]
 
-    # Create a container for the chat interface
-    chat_container = st.container()
+    # Show only the last 3 messages to keep it compact
+    recent_messages = st.session_state.messages[-3:]
     
-    # Create a container for the input at the bottom
-    input_container = st.container()
-    
-    # Display chat messages
-    with chat_container:
-        # Create a scrollable area for messages with a fixed height
-        st.markdown('<div style="height: 400px; overflow-n: auto;">', unsafe_allow_html=True)
-        
-        # Display chat messages from history
-        for message in st.session_state.messages:
+    # Display recent chat messages in a compact way
+    with st.container():
+        for message in recent_messages:
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
-                
-        st.markdown('</div>', unsafe_allow_html=True)
     
-    # Place the chat input at the bottom
-    with input_container:
-        prompt = st.chat_input("What would you like to know about your career options?")
+    # Chat input right below
+    prompt = st.chat_input("Ask about career paths, skills, job hunting...")
     
     # Process user input
     if prompt:
