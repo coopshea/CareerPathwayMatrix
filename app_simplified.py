@@ -82,8 +82,7 @@ def render_welcome_tab():
         st.session_state.messages.append({"role": "user", "content": prompt})
         
         # Add empty assistant message placeholder
-        with chat_container:
-            with st.chat_message("assistant"):
+        with st.chat_message("assistant"):
                 message_placeholder = st.empty()
                 
                 try:

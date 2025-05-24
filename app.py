@@ -55,43 +55,35 @@ def render_welcome_tab():
     where you are now and where you want to be.
     """)
     
-    # Video tutorial/introduction
-    st.subheader("Watch the tutorial")
-    # URL can be YouTube, Vimeo, or a direct video file
-    # For demo purposes, using a placeholder YouTube URL until the actual video is recorded
-    video_url = "https://youtu.be/3DmFuxVJcbA"  # Replace with actual video when available
+    # Video tutorial section first
+    st.subheader("📹 Watch the Tutorial")
+    st.markdown("Learn how to get the most out of CareerPath Navigator:")
+    
+    # Replace with your custom video URL
+    video_url = "https://youtu.be/3DmFuxVJcbA"  # Update this with your actual video
     st.video(video_url)
     
-    # AI chat assistant
-    st.markdown("---\n### Not sure where to start?")
-
+    # AI chat assistant - positioned after tutorial
+    st.markdown("---")
+    st.markdown("### 💬 Ask your AI career assistant")
+    
     # Initialize chat messages if not already in session state
     if "messages" not in st.session_state:
         st.session_state.messages = [
-            {"role": "assistant", "content": "Hello! I'm your AI career assistant. How can I help you today?"}
+            {"role": "assistant", "content": "Hi! I'm here to help with your career questions. What would you like to know?"}
         ]
 
-    # Create a container for the chat interface
-    chat_container = st.container()
+    # Show only the last 3 messages to keep it compact
+    recent_messages = st.session_state.messages[-3:]
     
-    # Create a container for the input at the bottom
-    input_container = st.container()
-    
-    # Display chat messages
-    with chat_container:
-        # Create a scrollable area for messages with a fixed height
-        st.markdown('<div style="height: 400px; overflow-n: auto;">', unsafe_allow_html=True)
-        
-        # Display chat messages from history
-        for message in st.session_state.messages:
+    # Display recent chat messages in a compact way
+    with st.container():
+        for message in recent_messages:
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
-                
-        st.markdown('</div>', unsafe_allow_html=True)
     
-    # Place the chat input at the bottom
-    with input_container:
-        prompt = st.chat_input("What would you like to know about your career options?")
+    # Chat input right below
+    prompt = st.chat_input("Ask about career paths, skills, job hunting...")
     
     # Process user input
     if prompt:
@@ -99,8 +91,7 @@ def render_welcome_tab():
         st.session_state.messages.append({"role": "user", "content": prompt})
         
         # Add empty assistant message placeholder
-        with chat_container:
-            with st.chat_message("assistant"):
+        with st.chat_message("assistant"):
                 message_placeholder = st.empty()
                 
                 try:
