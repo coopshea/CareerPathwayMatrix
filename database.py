@@ -9,8 +9,17 @@ from datetime import datetime
 # Get database URL from environment variables
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
-# Create SQLAlchemy engine
-engine = create_engine(DATABASE_URL)
+# Create SQLAlchemy engine with SSL configuration
+if DATABASE_URL:
+    # Add SSL configuration for stable connections
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,
+        pool_recycle=300,
+        connect_args={"sslmode": "prefer"}
+    )
+else:
+    engine = None
 Base = declarative_base()
 Session = sessionmaker(bind=engine)
 
@@ -565,11 +574,19 @@ def save_user_skills(skills_dict):
         print(f"Saved {len(skills_dict)} user skills to database for user {user_id}")
         return True
     except Exception as e:
-        session.rollback()
+        if session:
+            try:
+                session.rollback()
+            except:
+                pass  # Ignore rollback errors
         print(f"Error saving user skills to database: {e}")
         return False
     finally:
-        session.close()
+        if session:
+            try:
+                session.close()
+            except:
+                pass  # Ignore errors when closing session
 
 
 def fetch_user_skills(user_id=None):
@@ -616,10 +633,14 @@ def fetch_user_skills(user_id=None):
         return skills_dict
     except Exception as e:
         print(f"Error fetching user skills from database: {e}")
+        # Return empty dict on database errors - user can still use the app
         return {}
     finally:
         if session:
-            session.close()
+            try:
+                session.close()
+            except:
+                pass  # Ignore errors when closing session
 
 # Initialize the database and import data
 def init_and_load_data():
