@@ -1115,7 +1115,7 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
                 st.components.v1.html(html, height=600)
                 
                 # Display skill gap analysis
-                missing_skills = identify_skill_gaps(st.session_state.user_skills, job_skills)
+                missing_skills = identify_skill_gaps(st.session_state.user_skills, all_job_skills)
                 
                 st.write("## Skill Gap Analysis")
                 st.write("""
