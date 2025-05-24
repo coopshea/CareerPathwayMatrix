@@ -1,14 +1,4 @@
 import streamlit as st
-import os
-import hashlib
-import json
-from datetime import datetime
-
-# Import our custom auth
-from user_auth import (
-    is_authenticated, get_username, get_email, 
-    auth_widget, premium_feature_gate
-)
 
 # Set page config at the very beginning
 st.set_page_config(page_title="CareerPath Navigator", layout="wide")
@@ -22,6 +12,7 @@ from visualizations import create_matrix_visualization
 from recommendations import calculate_pathway_matches
 from skill_graph import skill_graph_page
 from utils import create_pathway_card, DEFAULT_IMAGES
+from user_auth import is_authenticated, auth_widget, auth_form, premium_feature_gate
 
 # 1) Central container for all user inputs & uploads
 @dataclass
@@ -31,6 +22,8 @@ class UserData:
     portfolio_bytes: Optional[bytes] = None
     questionnaire: Dict[str, Any] = field(default_factory=dict)
     selected_pathway: Optional[str] = None
+    user_skills: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    job_skills: Dict[str, Dict[str, Any]] = field(default_factory=dict)
 
 if "user_data" not in st.session_state:
     st.session_state.user_data = UserData()
@@ -51,133 +44,149 @@ pathways_df, metrics_data, categories = load_all()
 
 # 4) Page‐by‐page renderers
 def render_welcome_tab():
-    # Create columns for layout
-    col1, col2 = st.columns([3, 1])
+
+    # Motivational introduction
+    st.markdown("""
+    ### Finding Your Path Forward
     
-    with col1:
-        st.markdown("## Welcome to CareerPath Navigator")
-        
-        # Motivational introduction
-        st.markdown("""
-        ### Finding Your Path Forward
-        
-        Feeling stuck in your current role? Excited about exploring a new industry but not sure where to start? 
-        
-        **CareerPath Navigator** is designed to bridge the gap between 
-        where you are now and where you want to be.
-        """)
+    Feeling stuck in your current role? Excited about exploring a new industry but not sure where to start? 
     
-    with col2:
-        # Display login/user info
-        auth_widget()
+    **CareerPath Navigator** is designed to bridge the gap between 
+    where you are now and where you want to be.
+    """)
     
     # Video tutorial/introduction
     st.subheader("Watch the tutorial")
     # URL can be YouTube, Vimeo, or a direct video file
-    video_url = "https://youtu.be/B2iAodr0fOo"  # Replace with actual video when available
+    # For demo purposes, using a placeholder YouTube URL until the actual video is recorded
+    video_url = "https://youtu.be/3DmFuxVJcbA"  # Replace with actual video when available
     st.video(video_url)
     
     # AI chat assistant
-    st.markdown("---")
-    st.markdown("### Not sure where to start? Ask our AI Career Assistant")
-    
-    # Add data reset functionality if authenticated
-    if is_authenticated():
-        st.markdown("---")
-        st.subheader("Reset Your Data")
-        st.write("If you want to start fresh or remove your personal data, you can reset the application data here.")
-        
-        reset_col1, reset_col2 = st.columns([3, 1])
-        with reset_col1:
-            st.warning("This will clear all your skills, uploaded files, and saved learning plans. This cannot be undone.")
-        with reset_col2:
-            if st.button("Reset All Data"):
-                # Clear session state except auth
-                for key in list(st.session_state.keys()):
-                    if key != "user_id":  # Keep user auth
-                        try:
-                            del st.session_state[key]
-                        except:
-                            pass
-                
-                # Refresh the page
-                st.success("All data has been reset! The page will refresh momentarily.")
-                st.rerun()
-    
+    st.markdown("---\n### Not sure where to start?")
+
     # Initialize chat messages if not already in session state
     if "messages" not in st.session_state:
         st.session_state.messages = [
             {"role": "assistant", "content": "Hello! I'm your AI career assistant. How can I help you today?"}
         ]
+
+    # Create a container for the chat interface
+    chat_container = st.container()
     
-    # Display chat messages from history on app rerun
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+    # Create a container for the input at the bottom
+    input_container = st.container()
     
-    # Accept user input
-    if prompt := st.chat_input("What would you like to know about your career options?"):
+    # Display chat messages
+    with chat_container:
+        # Create a scrollable area for messages with a fixed height
+        st.markdown('<div style="height: 400px; overflow-n: auto;">', unsafe_allow_html=True)
+        
+        # Display chat messages from history
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
+                
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Place the chat input at the bottom
+    with input_container:
+        prompt = st.chat_input("What would you like to know about your career options?")
+    
+    # Process user input
+    if prompt:
         # Add user message to chat history
         st.session_state.messages.append({"role": "user", "content": prompt})
-        # Display user message in chat message container
-        with st.chat_message("user"):
-            st.markdown(prompt)
         
-        # Display assistant response in chat message container
-        with st.chat_message("assistant"):
-            response_placeholder = st.empty()
-            
-            try:
-                # Get API key if available
-                import os
-                api_key = os.environ.get("OPENAI_API_KEY")
+        # Add empty assistant message placeholder
+        with chat_container:
+            with st.chat_message("assistant"):
+                message_placeholder = st.empty()
                 
-                if api_key:
-                    from openai import OpenAI
+                try:
+                    # Get API key if available
+                    import os
+                    import time
+                    api_key = os.environ.get("OPENAI_API_KEY")
                     
-                    # Create OpenAI client
-                    client = OpenAI(api_key=api_key)
-                    
-                    # System message for the chat context
-                    messages = [
-                        {"role": "system", "content": """You are a helpful career assistant in the CareerPath Navigator application. 
-                        Guide users to use different features:
-                        - 2x2 Matrix: For comparing career paths visually
-                        - Find Your Pathway: For matching preferences to careers
-                        - AI Roadmap: For generating personalized roadmaps
-                        - Job Posting: For analyzing job opportunities
-                        - Skill Graph: For analyzing user skills and gaps
+                    if api_key:
+                        from openai import OpenAI
+                        client = OpenAI(api_key=api_key)
                         
-                        Keep responses friendly, concise and helpful."""}
-                    ]
+                        # System message with app context
+                        context = """You are a helpful career assistant in the CareerPath Navigator application. 
+                        
+                        App Features:
+                        - 2x2 Matrix: For comparing career paths visually on different dimensions
+                        - Find Your Pathway: For matching user preferences to career options
+                        - AI Roadmap: For generating personalized learning roadmaps
+                        - Job Posting Analysis: For analyzing job opportunities and skill requirements
+                        - Skill Graph: For analyzing user skills and identifying gaps
+                        - Portfolio: For organizing projects to showcase skills and prepare for interviews
+                        
+                        About the app (based on demo transcript):
+                        The CareerPath Navigator helps users navigate from their current career position to where they want to be. It extracts skills from resumes and compares them with job requirements, creating visual skill maps that show overlaps and gaps. The tool also helps users find the most efficient path to gain new skills for jobs they're interested in. The portfolio feature allows users to document projects demonstrating their skills which helps them prepare compelling stories for interviews.
+                        
+                        Keep responses friendly, concise and helpful."""
+                        
+                        # Prepare messages for API call
+                        messages = [{"role": "system", "content": context}]
+                        
+                        # Add chat history (only user and assistant messages)
+                        for msg in st.session_state.messages:
+                            if msg["role"] in ["user", "assistant"]:
+                                messages.append({"role": msg["role"], "content": msg["content"]})
+                        
+                        # Get response from OpenAI
+                        response = client.chat.completions.create(
+                            model="gpt-4o",
+                            messages=messages,
+                            temperature=0.7,
+                            max_tokens=500
+                        )
+                        
+                        # Get full response
+                        full_response = response.choices[0].message.content
+                        
+                        # Display with typing effect
+                        displayed_text = ""
+                        for char in full_response:
+                            displayed_text += char
+                            message_placeholder.markdown(displayed_text + "▌")
+                            time.sleep(0.005)  # Small typing delay
+                        
+                        # Final display without cursor
+                        message_placeholder.markdown(full_response)
+                        
+                        # Add to chat history
+                        st.session_state.messages.append({"role": "assistant", "content": full_response})
                     
-                    # Add the conversation history
-                    for message in st.session_state.messages:
-                        messages.append({"role": message["role"], "content": message["content"]})
-                    
-                    # Generate a response
-                    response = client.chat.completions.create(
-                        model="gpt-4o", 
-                        messages=messages,
-                        temperature=0.7,
-                        max_tokens=500
-                    )
-                    
-                    full_response = response.choices[0].message.content
-                    
-                else:
-                    # Fallback response if no API key
-                    full_response = "I'm here to help you navigate your career options! You can explore different paths in the tabs above, or ask me specific questions about career transitions, skill development, or job hunting strategies."
+                    else:
+                        # Fallback if no API key
+                        fallback_response = "I'm here to help you navigate your career options! You can explore different paths in the tabs above, or ask me specific questions about career transitions, skill development, or job hunting strategies."
+                        
+                        # Display typed fallback response
+                        displayed_text = ""
+                        for char in fallback_response:
+                            displayed_text += char
+                            message_placeholder.markdown(displayed_text + "▌")
+                            time.sleep(0.005)
+                            
+                        # Final display
+                        message_placeholder.markdown(fallback_response)
+                        
+                        # Add to chat history
+                        st.session_state.messages.append({"role": "assistant", "content": fallback_response})
                 
-            except Exception as e:
-                full_response = f"I'm here to help with career guidance. What specific aspect of your career journey would you like to explore today?"
-                print(f"Error generating AI response: {str(e)}")
-            
-            # Display the response
-            response_placeholder.markdown(full_response)
-            
-            # Add assistant response to chat history
-            st.session_state.messages.append({"role": "assistant", "content": full_response})
+                except Exception as e:
+                    # Error handling
+                    error_response = "I'm here to help with career guidance. What specific aspect of your career journey would you like to explore today?"
+                    message_placeholder.markdown(error_response)
+                    st.session_state.messages.append({"role": "assistant", "content": error_response})
+                    print(f"Error in chat: {str(e)}")
+        
+        # Rerun to update the UI
+        st.rerun()
 
 def render_portfolio_tab():
     st.header("📂 Project Portfolio")
@@ -418,6 +427,45 @@ def main():
         </div>
     """, unsafe_allow_html=True)
     
+    # Check if user is authenticated
+    if not is_authenticated():
+        st.markdown("""
+            <div style='text-align: center'>
+                <h4>Welcome to CareerPath Navigator!</h4>
+                <p>Please sign in or create an account to access all features.</p>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        # Add login form
+        auth_form()
+        
+        # Show a preview of what the app offers
+        st.markdown("---")
+        st.markdown("### What CareerPath Navigator Offers:")
+        
+        # Create columns for feature highlights
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.markdown("#### 🧩 Skill Graph")
+            st.markdown("Visualize your skills and identify gaps")
+            
+        with col2:
+            st.markdown("#### 📂 Project Portfolio")
+            st.markdown("Track and showcase your projects")
+            
+        with col3:
+            st.markdown("#### 🔍 Career Pathways")
+            st.markdown("Discover and plan your career journey")
+            
+        # Stop execution if not authenticated
+        st.stop()
+    
+    # User is authenticated - show auth widget (with logout button)
+    st.sidebar.markdown("### Account")
+    auth_widget()
+    
+    # Display main content
     tabs = st.tabs([
         "Welcome",
         "Skill Graph",
@@ -499,37 +547,21 @@ def main():
         
         # Add data reset functionality to About tab as well
         st.markdown("---")
+        st.subheader("Reset Your Data")
+        st.write("If you want to start fresh or remove your personal data, you can reset the application data here.")
         
-        # Create columns for account info
-        col1, col2 = st.columns([2, 1])
-        
-        with col1:
-            st.subheader("Your Account")
-            # Display login widget if not authenticated
-            auth_widget()
-        
-        # Only show reset functionality if authenticated
-        if is_authenticated():
-            st.markdown("---")
-            st.subheader("Reset Your Data")
-            st.write("If you want to start fresh or remove your personal data, you can reset the application data here.")
-            
-            reset_col1, reset_col2 = st.columns([3, 1])
-            with reset_col1:
-                st.warning("This will clear all your skills, uploaded files, and saved learning plans. This cannot be undone.")
-            with reset_col2:
-                if st.button("Reset All Data", key="reset_data_about"):
-                    # Clear session state except auth
-                    for key in list(st.session_state.keys()):
-                        if key != "user_id":  # Keep user auth
-                            try:
-                                del st.session_state[key]
-                            except:
-                                pass
-                    
-                    # Refresh the page
-                    st.success("All data has been reset! The page will refresh momentarily.")
-                    st.rerun()
+        reset_col1, reset_col2 = st.columns([3, 1])
+        with reset_col1:
+            st.warning("This will clear all your skills, uploaded files, and saved learning plans. This cannot be undone.")
+        with reset_col2:
+            if st.button("Reset All Data", key="reset_data_about"):
+                # Just clear session state completely
+                for key in list(st.session_state.keys()):
+                    del st.session_state[key]
+                
+                # Refresh the page
+                st.success("All data has been reset! The page will refresh momentarily.")
+                st.rerun()
 
 if __name__ == "__main__":
     main()
