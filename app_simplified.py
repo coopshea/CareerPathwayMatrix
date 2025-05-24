@@ -55,15 +55,8 @@ def render_welcome_tab():
     where you are now and where you want to be.
     """)
     
-    # Video tutorial/introduction
-    st.subheader("Watch the tutorial")
-    # URL can be YouTube, Vimeo, or a direct video file
-    # For demo purposes, using a placeholder YouTube URL until the actual video is recorded
-    video_url = "https://youtu.be/3DmFuxVJcbA"  # Replace with actual video when available
-    st.video(video_url)
-    
-    # AI chat assistant
-    st.markdown("---\n### Not sure where to start?")
+    # AI chat assistant - moved up for better visibility
+    st.markdown("### 💬 Not sure where to start? Ask me!")
 
     # Initialize chat messages if not already in session state
     if "messages" not in st.session_state:
@@ -187,6 +180,15 @@ def render_welcome_tab():
         
         # Rerun to update the UI
         st.rerun()
+    
+    # Video tutorial section - moved after chat for better flow
+    st.markdown("---")
+    st.subheader("📹 Watch the Tutorial")
+    st.markdown("Learn how to get the most out of CareerPath Navigator:")
+    
+    # Replace with your custom video URL
+    video_url = "https://youtu.be/3DmFuxVJcbA"  # Update this with your actual video
+    st.video(video_url)
 
 def render_portfolio_tab():
     st.header("📂 Project Portfolio")
