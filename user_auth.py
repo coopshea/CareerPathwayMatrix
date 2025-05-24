@@ -120,9 +120,7 @@ def logout_user():
 
 # Auth UI components
 def auth_signup_form():
-    import uuid
-    form_key = f"signup_form_{str(uuid.uuid4())[:8]}"
-    with st.form(form_key):
+    with st.form("signup_form_main"):
         st.subheader("Create an Account")
         username = st.text_input("Username", key="signup_username")
         email = st.text_input("Email", key="signup_email")
@@ -145,9 +143,7 @@ def auth_signup_form():
                 return False
 
 def auth_login_form():
-    import uuid
-    form_key = f"login_form_{str(uuid.uuid4())[:8]}"
-    with st.form(form_key):
+    with st.form("login_form_main"):
         st.subheader("Login")
         username = st.text_input("Username", key="login_username")
         password = st.text_input("Password", type="password", key="login_password")
@@ -190,7 +186,7 @@ def auth_widget():
             # Handle case where user_id exists but user data doesn't
             logout_user()
             st.warning("Session expired. Please log in again.")
-            auth_form()
+            st.rerun()
     else:
         auth_form()
 
