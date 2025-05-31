@@ -381,12 +381,31 @@ def render_2x2_matrix_tab():
         import pandas as pd
         df_data = []
         for pathway in filtered_pathways:
+            # Ensure metrics are in the expected format with nested value structure
+            metrics = pathway.get('metrics', {})
+            if metrics:
+                # Convert flat metrics to nested format if needed
+                formatted_metrics = {}
+                for key, value in metrics.items():
+                    if isinstance(value, dict):
+                        formatted_metrics[key] = value
+                    else:
+                        formatted_metrics[key] = {'value': value}
+            else:
+                # Create default metrics if none exist
+                formatted_metrics = {
+                    'salary_median': {'value': pathway.get('median_salary', 80) / 1000 if pathway.get('median_salary') else 80},
+                    'growth_rate': {'value': int(pathway.get('job_growth_rate', '5%').rstrip('%')) if pathway.get('job_growth_rate', '5%').rstrip('%').isdigit() else 5},
+                    'work_life_balance': {'value': pathway.get('work_life_balance_score', 5)},
+                    'education_level': {'value': 7 if pathway.get('education_required', '').find('BS') != -1 else 5}
+                }
+            
             df_data.append({
                 'id': pathway['id'],
                 'name': pathway['name'],
                 'category': pathway['category'],
                 'super_category': pathway.get('super_category', pathway['category']),
-                'metrics': pathway.get('metrics', {}),
+                'metrics': formatted_metrics,
                 'is_job_posting': pathway.get('is_job_posting', False),
                 'pathway_type': pathway.get('pathway_type', 'general')
             })
