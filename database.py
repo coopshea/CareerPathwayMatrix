@@ -698,6 +698,38 @@ def check_migration_needed():
         session.close()
 
 # Test if database connection is working
+def delete_user_data(user_id):
+    """
+    Delete all user-specific data from the database.
+    
+    Args:
+        user_id (str): The user ID whose data should be deleted
+    
+    Returns:
+        bool: Success or failure
+    """
+    try:
+        session = Session()
+        # Delete user skills
+        session.query(UserSkill).filter(UserSkill.user_id == user_id).delete()
+        
+        # Delete user documents  
+        session.query(UserDocument).filter(UserDocument.user_id == user_id).delete()
+        
+        # Delete chat messages
+        session.query(ChatMessage).filter(ChatMessage.user_id == user_id).delete()
+        
+        # Note: We keep the User record itself for login purposes
+        # If you want to delete the user account entirely, uncomment:
+        # session.query(User).filter(User.id == user_id).delete()
+        
+        session.commit()
+        session.close()
+        return True
+    except Exception as e:
+        print(f"Error deleting user data: {e}")
+        return False
+
 def test_connection():
     try:
         conn = engine.connect()

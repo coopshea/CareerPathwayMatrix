@@ -179,9 +179,32 @@ def auth_widget():
         if user:
             st.write(f"Logged in as **{user['username']}**")
             
-            if st.button("Logout", key="logout_button"):
-                logout_user()
-                st.rerun()
+            # Create columns for buttons
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                if st.button("Logout", key="logout_button"):
+                    logout_user()
+                    st.rerun()
+            
+            with col2:
+                if st.button("Delete All Data", key="delete_data_button", type="secondary"):
+                    # Clear all user-specific session data
+                    keys_to_keep = ['user_id']  # Keep authentication
+                    keys_to_delete = [key for key in st.session_state.keys() if key not in keys_to_keep]
+                    
+                    for key in keys_to_delete:
+                        del st.session_state[key]
+                    
+                    # Also clear any user data from database if needed
+                    try:
+                        from database import delete_user_data
+                        delete_user_data(st.session_state['user_id'])
+                        st.success("All your data has been deleted!")
+                    except Exception as e:
+                        st.success("Session data cleared!")
+                    
+                    st.rerun()
         else:
             # Handle case where user_id exists but user data doesn't
             logout_user()
