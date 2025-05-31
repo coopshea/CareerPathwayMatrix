@@ -826,12 +826,12 @@ def import_engineering_careers():
                 travel_requirements=career_data['travel_requirements'],
                 industry_focus=career_data['industry_focus'],
                 education_required=career_data['education_required'],
-                # Create basic metrics for compatibility with 2x2 matrix
+                # Create basic metrics for 2x2 matrix compatibility
                 metrics={
-                    'salary_median': career_data['median_salary'] / 1000,  # Convert to thousands
-                    'growth_rate': int(career_data['job_growth'].rstrip('%')) if career_data['job_growth'].rstrip('%').isdigit() else 5,
-                    'work_life_balance': career_data['work_life_balance'],
-                    'education_level': 7 if 'BS' in career_data['education_required'] else 5
+                    'risk_level': {'value': max(1, min(10, 10 - career_data['work_life_balance']))},
+                    'capital_requirements': {'value': max(1, min(10, career_data['median_salary'] / 20000))},
+                    'technical_specialization': {'value': 7},
+                    'scalability': {'value': 8 if 'Software' in career_data.get('super_category', '') else 5}
                 }
             )
             session.add(pathway)
