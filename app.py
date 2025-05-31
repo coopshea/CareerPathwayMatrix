@@ -301,28 +301,110 @@ def render_2x2_matrix_tab():
     st.write("Compare career pathways across two key metrics to visualize trade-offs and opportunities.")
     
     try:
-        # Load the data
-        pathways_df, metrics_data, categories = load_all()
+        from database import fetch_pathways_unified
         
-        if pathways_df is None or len(pathways_df) == 0 or not metrics_data:
-            st.error("Unable to load pathway data. Please check your database connection.")
+        # Add filtering options
+        st.subheader("Filter Options")
+        filter_cols = st.columns(3)
+        
+        with filter_cols[0]:
+            pathway_type_filter = st.selectbox(
+                "Pathway Type",
+                options=["All", "Engineering Careers", "Job Postings"],
+                index=0
+            )
+            
+        with filter_cols[1]:
+            # Get available super categories from database
+            all_pathways = fetch_pathways_unified()
+            super_categories = sorted(list(set([p.get('super_category') for p in all_pathways if p.get('super_category')])))
+            
+            super_category_filter = st.multiselect(
+                "Super Categories",
+                options=super_categories,
+                default=super_categories
+            )
+            
+        with filter_cols[2]:
+            # Get available categories based on super category filter
+            if super_category_filter:
+                filtered_for_categories = [p for p in all_pathways if p.get('super_category') in super_category_filter]
+            else:
+                filtered_for_categories = all_pathways
+            categories = sorted(list(set([p.get('category') for p in filtered_for_categories if p.get('category')])))
+            
+            category_filter = st.multiselect(
+                "Categories",
+                options=categories,
+                default=categories[:5] if len(categories) > 5 else categories
+            )
+        
+        # Apply filters to get pathways
+        pathway_type_map = {
+            "Engineering Careers": "engineering_career",
+            "Job Postings": "job_posting",
+            "All": None
+        }
+        
+        filtered_pathways = fetch_pathways_unified(
+            pathway_type=pathway_type_map.get(pathway_type_filter),
+            super_category=super_category_filter[0] if len(super_category_filter) == 1 else None,
+            category=category_filter[0] if len(category_filter) == 1 else None
+        )
+        
+        # Further filter by multiple categories if needed
+        if len(category_filter) > 1:
+            filtered_pathways = [p for p in filtered_pathways if p.get('category') in category_filter]
+        if len(super_category_filter) > 1:
+            filtered_pathways = [p for p in filtered_pathways if p.get('super_category') in super_category_filter]
+            
+        if not filtered_pathways:
+            st.warning("No pathways match your filter criteria. Try adjusting the filters.")
+            return
+            
+        # Load basic metrics data for axis selection
+        pathways_df, metrics_data, _ = load_all()
+        
+        if not metrics_data:
+            st.error("Unable to load metrics data for visualization.")
             return
         
         # Choose axes
+        st.subheader("Visualization Axes")
         cols = st.columns(2)
         with cols[0]:
             x_metric = sb("X‐Axis", list(metrics_data.keys()), key="matrix_x")
         with cols[1]:
             y_metric = sb("Y‐Axis", list(metrics_data.keys()), key="matrix_y")
         
-        # Create visualization
-        from visualizations import create_matrix_visualization
-        fig = create_matrix_visualization(pathways_df, x_metric, y_metric, metrics_data)
+        # Convert filtered pathways to DataFrame format for visualization
+        import pandas as pd
+        df_data = []
+        for pathway in filtered_pathways:
+            df_data.append({
+                'id': pathway['id'],
+                'name': pathway['name'],
+                'category': pathway['category'],
+                'super_category': pathway.get('super_category', pathway['category']),
+                'metrics': pathway.get('metrics', {}),
+                'is_job_posting': pathway.get('is_job_posting', False),
+                'pathway_type': pathway.get('pathway_type', 'general')
+            })
         
-        if fig:
-            st.plotly_chart(fig, use_container_width=True)
+        if df_data:
+            pathways_df_filtered = pd.DataFrame(df_data)
+            
+            # Create visualization
+            from visualizations import create_matrix_visualization
+            fig = create_matrix_visualization(pathways_df_filtered, x_metric, y_metric, metrics_data)
+            
+            if fig:
+                st.plotly_chart(fig, use_container_width=True)
+                st.info(f"Showing {len(filtered_pathways)} pathways based on your filter criteria.")
+            else:
+                st.info("Matrix visualization will appear once you select different metrics for the X and Y axes.")
         else:
-            st.info("Matrix visualization will appear once you select different metrics for the X and Y axes.")
+            st.warning("No pathway data available for visualization.")
         
     except Exception as e:
         st.error(f"Error loading data for matrix visualization: {str(e)}")

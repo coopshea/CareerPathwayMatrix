@@ -264,22 +264,30 @@ def create_engineering_pathways_table():
     st.header("🔍 Engineering Career Pathways")
     st.write("Compare engineering roles across multiple dimensions to find your ideal career path.")
     
+    # Load data from unified database
+    from database import fetch_pathways_unified
+    pathways = fetch_pathways_unified(pathway_type='engineering_career')
+    
+    if not pathways:
+        st.error("No engineering career data found in database.")
+        return
+    
     # Convert data to DataFrame for easier manipulation
     df_data = []
-    for role_id, data in ENGINEERING_CAREERS.items():
+    for pathway in pathways:
         df_data.append({
-            'Role': data['name'],
-            'Super Category': data.get('super_category', data['category']),
-            'Category': data['category'],
-            'Median Salary': f"${data['median_salary']:,}",
-            'Salary Range': f"${data['salary_range'][0]:,} - ${data['salary_range'][1]:,}",
-            'Job Growth': data['job_growth'],
-            'Work-Life Balance': f"{data['work_life_balance']}/10",
-            'Travel': data['travel_requirements'],
-            'Industry Focus': data['industry_focus'],
-            'Education Required': data['education_required'],
-            'Key Skills': ', '.join(data['key_skills'][:3]) + '...',
-            'Description': data['description']
+            'Role': pathway['name'],
+            'Super Category': pathway.get('super_category', pathway['category']),
+            'Category': pathway['category'],
+            'Median Salary': f"${pathway['median_salary']:,}" if pathway.get('median_salary') else 'N/A',
+            'Salary Range': f"${pathway['salary_range_min']:,} - ${pathway['salary_range_max']:,}" if pathway.get('salary_range_min') and pathway.get('salary_range_max') else 'N/A',
+            'Job Growth': pathway.get('job_growth_rate', 'N/A'),
+            'Work-Life Balance': f"{pathway['work_life_balance_score']}/10" if pathway.get('work_life_balance_score') else 'N/A',
+            'Travel': pathway.get('travel_requirements', 'N/A'),
+            'Industry Focus': pathway.get('industry_focus', 'N/A'),
+            'Education Required': pathway.get('education_required', 'N/A'),
+            'Key Skills': ', '.join(pathway.get('key_skills', [])[:3]) + ('...' if len(pathway.get('key_skills', [])) > 3 else ''),
+            'Description': pathway.get('description', 'N/A')
         })
     
     df = pd.DataFrame(df_data)
@@ -363,15 +371,23 @@ def create_weighted_scoring_system():
         # Calculate weighted scores for each role
         scored_roles = []
         
-        for role_id, data in ENGINEERING_CAREERS.items():
+        # Load data from unified database
+        from database import fetch_pathways_unified
+        pathways = fetch_pathways_unified(pathway_type='engineering_career')
+        
+        if not pathways:
+            st.error("No engineering career data found in database.")
+            return
+        
+        for pathway in pathways:
             # Normalize scores to 0-10 scale
-            salary_score = min(10, (data['median_salary'] - 60000) / 15000)  # Scale based on range
-            growth_score = min(10, int(data['job_growth'].rstrip('%')) / 2)  # Scale growth percentage
-            wlb_score = data['work_life_balance']
+            salary_score = min(10, (pathway.get('median_salary', 60000) - 60000) / 15000)  # Scale based on range
+            growth_rate = pathway.get('job_growth_rate', '5%')
+            growth_score = min(10, int(growth_rate.rstrip('%')) / 2) if growth_rate.rstrip('%').isdigit() else 5
+            wlb_score = pathway.get('work_life_balance_score', 5)
             
-            # Remote work scoring
-            remote_scores = {"Full Remote": 10, "Hybrid": 7, "On-site": 3}
-            remote_score = 5  # Default score since remote_potential was removed
+            # Remote work scoring - simplified since we removed remote_potential
+            remote_score = 5  # Default neutral score
             
             # Innovation scoring (based on category and growth)
             innovation_scores = {
