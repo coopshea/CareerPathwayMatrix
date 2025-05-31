@@ -438,8 +438,91 @@ def render_2x2_matrix_tab():
         st.info("The 2x2 matrix feature requires pathway data to be properly loaded from the database.")
 
 def render_find_pathway_tab():
-    from engineering_careers import engineering_career_pathways_page
-    engineering_career_pathways_page()
+    st.header("🔍 Find Your Pathway")
+    
+    st.write("""
+    Complete the questionnaire below to discover career pathways that align with your preferences.
+    """)
+    
+    # Load data using the original structure
+    pathways_df, metrics_data, categories = load_all()
+    
+    if pathways_df is None or len(pathways_df) == 0:
+        st.warning("No pathway data available.")
+        return
+    
+    # Create the questionnaire
+    st.subheader("Career Preferences Questionnaire")
+    
+    metrics = metrics_data.keys()
+    user_preferences = {}
+    importance_weights = {}
+    
+    # Create columns for better layout
+    col1, col2 = st.columns(2)
+    
+    metric_count = 0
+    for metric_id in metrics:
+        metric_info = metrics_data[metric_id]
+        
+        # Alternate between columns
+        with col1 if metric_count % 2 == 0 else col2:
+            st.markdown(f"##### {metric_info['name']}")
+            st.caption(metric_info['description'])
+            
+            # Create a slider for preference
+            preference = st.slider(
+                f"Your preference ({metric_info['low_label']} to {metric_info['high_label']})",
+                1, 10, 5, 
+                key=f"pref_{metric_id}"
+            )
+            
+            # Create a slider for importance
+            importance = st.slider(
+                "How important is this to you?",
+                1, 10, 5,
+                key=f"imp_{metric_id}"
+            )
+            
+            # Store the values
+            user_preferences[metric_id] = [max(1, preference-1), min(10, preference+1)]
+            importance_weights[metric_id] = importance
+            
+            metric_count += 1
+    
+    # Calculate matches when button is clicked
+    if st.button("Find Matching Pathways", key="find_pathways_btn"):
+        from recommendations import calculate_pathway_matches
+        matches = calculate_pathway_matches(pathways_df, user_preferences, importance_weights)
+        
+        st.session_state.pathway_matches = matches
+        
+        # Display the matches
+        st.markdown("## Best Matching Pathways")
+        for pathway_id, score, explanation in matches[:5]:
+            pathway = None
+            for _, row in pathways_df.iterrows():
+                if row["id"] == pathway_id:
+                    pathway = row
+                    break
+            
+            if pathway is not None:
+                st.markdown(f"### {pathway['name']} (Match: {score:.0f}%)")
+                st.markdown(explanation)
+                
+                # Show more details with an expander
+                with st.expander("View Details"):
+                    st.markdown(f"**Description:** {pathway['description']}")
+                    
+                    st.markdown("**Key Skills:**")
+                    for skill in pathway.get('key_skills', []):
+                        st.markdown(f"- {skill}")
+                    
+                    # Add a button to generate a roadmap for this pathway
+                    if st.button("Generate Roadmap", key=f"gen_road_{pathway_id}"):
+                        st.session_state.user_data.selected_pathway = pathway_id
+                        st.session_state.active_tab = 2  # AI Roadmap tab
+                        st.rerun()
 
 def render_ai_roadmap_tab():
     st.header("🤖 AI Career Roadmap")
