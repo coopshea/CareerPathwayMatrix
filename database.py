@@ -30,6 +30,7 @@ class Pathway(Base):
     id = Column(String, primary_key=True)
     name = Column(String, nullable=False)
     category = Column(String, nullable=False)
+    super_category = Column(String, nullable=True)  # For hierarchical grouping
     description = Column(Text)
     target_customers = Column(Text)
     success_examples = Column(JSON)
@@ -38,6 +39,18 @@ class Pathway(Base):
     rationale = Column(JSON)
     is_job_posting = Column(Boolean, default=False)  # Flag to identify job postings
     job_data = Column(JSON, nullable=True)  # Original job data from analysis
+    pathway_type = Column(String, default='general')  # engineering_career, job_posting, custom, etc.
+    
+    # Engineering career specific fields
+    median_salary = Column(Integer, nullable=True)
+    salary_range_min = Column(Integer, nullable=True)
+    salary_range_max = Column(Integer, nullable=True)
+    job_growth_rate = Column(String, nullable=True)
+    work_life_balance_score = Column(Integer, nullable=True)
+    travel_requirements = Column(String, nullable=True)
+    industry_focus = Column(Text, nullable=True)
+    education_required = Column(Text, nullable=True)
+    
     date_added = Column(DateTime, default=datetime.utcnow)
     
     def to_dict(self):
@@ -45,6 +58,7 @@ class Pathway(Base):
             'id': self.id,
             'name': self.name,
             'category': self.category,
+            'super_category': self.super_category,
             'description': self.description,
             'target_customers': self.target_customers,
             'success_examples': self.success_examples,
@@ -53,6 +67,15 @@ class Pathway(Base):
             'rationale': self.rationale,
             'is_job_posting': self.is_job_posting if self.is_job_posting is not None else False,
             'job_data': self.job_data,
+            'pathway_type': self.pathway_type,
+            'median_salary': self.median_salary,
+            'salary_range_min': self.salary_range_min,
+            'salary_range_max': self.salary_range_max,
+            'job_growth_rate': self.job_growth_rate,
+            'work_life_balance_score': self.work_life_balance_score,
+            'travel_requirements': self.travel_requirements,
+            'industry_focus': self.industry_focus,
+            'education_required': self.education_required,
             'date_added': self.date_added.isoformat() if self.date_added else None
         }
     
@@ -672,6 +695,7 @@ def recreate_tables():
         # Import the original data
         print("Importing data...")
         import_simpler_data()
+        import_engineering_careers()
         
         print("Database tables have been recreated successfully!")
         return True
@@ -767,6 +791,92 @@ def test_connection():
     except Exception as e:
         print(f"Database connection error: {e}")
         return False
+
+def import_engineering_careers():
+    """
+    Import engineering careers data from the hardcoded dictionary into the database.
+    """
+    from engineering_careers import ENGINEERING_CAREERS
+    
+    try:
+        session = Session()
+        
+        # Check if engineering careers are already imported
+        existing_count = session.query(Pathway).filter_by(pathway_type='engineering_career').count()
+        if existing_count > 0:
+            print(f"Engineering careers already imported ({existing_count} records). Skipping import.")
+            session.close()
+            return
+            
+        # Import each engineering career
+        for career_id, career_data in ENGINEERING_CAREERS.items():
+            pathway = Pathway(
+                id=career_id,
+                name=career_data['name'],
+                category=career_data['category'],
+                super_category=career_data.get('super_category', career_data['category']),
+                description=career_data['description'],
+                key_skills=career_data['key_skills'],
+                pathway_type='engineering_career',
+                median_salary=career_data['median_salary'],
+                salary_range_min=career_data['salary_range'][0],
+                salary_range_max=career_data['salary_range'][1],
+                job_growth_rate=career_data['job_growth'],
+                work_life_balance_score=career_data['work_life_balance'],
+                travel_requirements=career_data['travel_requirements'],
+                industry_focus=career_data['industry_focus'],
+                education_required=career_data['education_required'],
+                # Create basic metrics for compatibility with 2x2 matrix
+                metrics={
+                    'salary_median': career_data['median_salary'] / 1000,  # Convert to thousands
+                    'growth_rate': int(career_data['job_growth'].rstrip('%')) if career_data['job_growth'].rstrip('%').isdigit() else 5,
+                    'work_life_balance': career_data['work_life_balance'],
+                    'education_level': 7 if 'BS' in career_data['education_required'] else 5
+                }
+            )
+            session.add(pathway)
+            
+        session.commit()
+        print(f"Successfully imported {len(ENGINEERING_CAREERS)} engineering careers to database.")
+        session.close()
+        
+    except Exception as e:
+        print(f"Error importing engineering careers: {e}")
+        if 'session' in locals():
+            session.rollback()
+            session.close()
+
+def fetch_pathways_unified(pathway_type=None, super_category=None, category=None):
+    """
+    Fetch pathways from database with filtering options.
+    
+    Args:
+        pathway_type (str, optional): Filter by pathway type ('engineering_career', 'job_posting', etc.)
+        super_category (str, optional): Filter by super category
+        category (str, optional): Filter by category
+        
+    Returns:
+        list: List of pathway dictionaries
+    """
+    try:
+        session = Session()
+        query = session.query(Pathway)
+        
+        if pathway_type:
+            query = query.filter(Pathway.pathway_type == pathway_type)
+        if super_category:
+            query = query.filter(Pathway.super_category == super_category)
+        if category:
+            query = query.filter(Pathway.category == category)
+            
+        pathways = query.all()
+        result = [pathway.to_dict() for pathway in pathways]
+        session.close()
+        return result
+        
+    except Exception as e:
+        print(f"Error fetching pathways: {e}")
+        return []
 
 if __name__ == "__main__":
     if test_connection():
