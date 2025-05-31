@@ -698,9 +698,39 @@ def check_migration_needed():
         session.close()
 
 # Test if database connection is working
+def clear_user_data(user_id):
+    """
+    Clear all user-specific data but keep the account.
+    
+    Args:
+        user_id (str): The user ID whose data should be cleared
+    
+    Returns:
+        bool: Success or failure
+    """
+    try:
+        session = Session()
+        # Delete user skills
+        session.query(UserSkill).filter(UserSkill.user_id == user_id).delete()
+        
+        # Delete user documents  
+        session.query(UserDocument).filter(UserDocument.user_id == user_id).delete()
+        
+        # Delete chat messages
+        session.query(ChatMessage).filter(ChatMessage.user_id == user_id).delete()
+        
+        # Keep the User account record intact
+        
+        session.commit()
+        session.close()
+        return True
+    except Exception as e:
+        print(f"Error clearing user data: {e}")
+        return False
+
 def delete_user_data(user_id):
     """
-    Delete all user-specific data from the database.
+    Delete all user-specific data and the account from the database.
     
     Args:
         user_id (str): The user ID whose data should be deleted
