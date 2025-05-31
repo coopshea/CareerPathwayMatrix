@@ -719,9 +719,8 @@ def delete_user_data(user_id):
         # Delete chat messages
         session.query(ChatMessage).filter(ChatMessage.user_id == user_id).delete()
         
-        # Note: We keep the User record itself for login purposes
-        # If you want to delete the user account entirely, uncomment:
-        # session.query(User).filter(User.id == user_id).delete()
+        # Delete the user account entirely
+        session.query(User).filter(User.id == user_id).delete()
         
         session.commit()
         session.close()

@@ -72,8 +72,9 @@ def analyze_resume_skills(resume_text):
         return skills_data
         
     except Exception as e:
-        st.error(f"Error analyzing resume: {str(e)}")
-        return get_sample_skills()
+        # Return empty dict to signal failure, let calling function handle fallback
+        print(f"OpenAI API error in resume analysis: {str(e)}")
+        return {}
 
 
 def get_sample_skills():
@@ -717,8 +718,21 @@ def render_skill_graph_tab(user_data=None, selectbox=None):
                         # Analyze resume for skills
                         with st.spinner("Extracting skills..."):
                             try:
-                                # Try using AI for skill extraction
-                                skills_dict = analyze_resume_skills(resume_text)
+                                # Check rate limits first
+                                from rate_limiter import check_rate_limit, increment_usage
+                                can_call, current_usage = check_rate_limit()
+                                
+                                if not can_call:
+                                    st.error("Daily API limit reached. Using manual skill entry instead.")
+                                    skills_dict = get_sample_skills()
+                                else:
+                                    # Try using AI for skill extraction
+                                    skills_dict = analyze_resume_skills(resume_text)
+                                    if skills_dict:
+                                        increment_usage()  # Only increment if successful
+                                    else:
+                                        skills_dict = get_sample_skills()
+                                
                                 st.session_state.user_skills = skills_dict
                                 st.success("Skills extracted successfully!")
                                 

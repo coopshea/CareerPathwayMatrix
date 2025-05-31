@@ -186,19 +186,21 @@ def auth_widget():
             
             # Delete data button
             if st.sidebar.button("Delete All Data", key="delete_data_button", type="secondary"):
-                # Clear all user-specific session data
-                keys_to_keep = ['user_id']  # Keep authentication
-                keys_to_delete = [key for key in st.session_state.keys() if key not in keys_to_keep]
-                
-                for key in keys_to_delete:
-                    del st.session_state[key]
-                
-                # Also clear any user data from database if needed
+                # Delete user data from database including account
                 try:
                     from database import delete_user_data
-                    delete_user_data(st.session_state['user_id'])
-                    st.sidebar.success("All your data has been deleted!")
+                    user_id = st.session_state['user_id']
+                    delete_user_data(user_id)
+                    
+                    # Clear all session data including authentication
+                    for key in list(st.session_state.keys()):
+                        del st.session_state[key]
+                    
+                    st.sidebar.success("All your data and account have been completely deleted!")
                 except Exception as e:
+                    # Fallback: clear session data
+                    for key in list(st.session_state.keys()):
+                        del st.session_state[key]
                     st.sidebar.success("Session data cleared!")
                 
                 st.rerun()
