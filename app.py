@@ -536,23 +536,7 @@ def main():
         Your uploads & questionnaire answers persist as you move between pages.
         """)
         
-        # Add data reset functionality to About tab as well
-        st.markdown("---")
-        st.subheader("Reset Your Data")
-        st.write("If you want to start fresh or remove your personal data, you can reset the application data here.")
-        
-        reset_col1, reset_col2 = st.columns([3, 1])
-        with reset_col1:
-            st.warning("This will clear all your skills, uploaded files, and saved learning plans. This cannot be undone.")
-        with reset_col2:
-            if st.button("Reset All Data", key="reset_data_about"):
-                # Just clear session state completely
-                for key in list(st.session_state.keys()):
-                    del st.session_state[key]
-                
-                # Refresh the page
-                st.success("All data has been reset! The page will refresh momentarily.")
-                st.rerun()
+
 
 if __name__ == "__main__":
     main()
