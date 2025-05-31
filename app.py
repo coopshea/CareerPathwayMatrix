@@ -413,6 +413,11 @@ def render_2x2_matrix_tab():
         if df_data:
             pathways_df_filtered = pd.DataFrame(df_data)
             
+            # Debug: Show what data we have
+            st.write("Debug - Available metrics in first pathway:", list(pathways_df_filtered.iloc[0]['metrics'].keys()) if len(pathways_df_filtered) > 0 else "No data")
+            st.write("Debug - Selected metrics:", x_metric, y_metric)
+            st.write("Debug - Metrics data keys:", list(metrics_data.keys()))
+            
             # Create visualization
             from visualizations import create_matrix_visualization
             fig = create_matrix_visualization(pathways_df_filtered, x_metric, y_metric, metrics_data)
@@ -422,6 +427,7 @@ def render_2x2_matrix_tab():
                 st.info(f"Showing {len(filtered_pathways)} pathways based on your filter criteria.")
             else:
                 st.info("Matrix visualization will appear once you select different metrics for the X and Y axes.")
+                st.write("Debug - Figure was None, check data compatibility")
         else:
             st.warning("No pathway data available for visualization.")
         
