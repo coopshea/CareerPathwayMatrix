@@ -298,15 +298,29 @@ def render_portfolio_tab():
 
 def render_2x2_matrix_tab():
     st.header("🔢 2×2 Matrix")
-    # Choose axes
-    cols = st.columns(2)
-    with cols[0]:
-        x_metric = sb("X‐Axis", list(metrics_data.keys()), key="matrix_x")
-    with cols[1]:
-        y_metric = sb("Y‐Axis", list(metrics_data.keys()), key="matrix_y")
+    st.write("Compare career pathways across two key metrics to visualize trade-offs and opportunities.")
     
-    # Create visualization
-    create_matrix_visualization(pathways_df, x_metric, y_metric, metrics_data)
+    try:
+        # Load the data
+        pathways_df, metrics_data, categories = load_all()
+        
+        if not pathways_df or not metrics_data:
+            st.error("Unable to load pathway data. Please check your database connection.")
+            return
+        
+        # Choose axes
+        cols = st.columns(2)
+        with cols[0]:
+            x_metric = sb("X‐Axis", list(metrics_data.keys()), key="matrix_x")
+        with cols[1]:
+            y_metric = sb("Y‐Axis", list(metrics_data.keys()), key="matrix_y")
+        
+        # Create visualization
+        create_matrix_visualization(pathways_df, x_metric, y_metric, metrics_data)
+        
+    except Exception as e:
+        st.error(f"Error loading data for matrix visualization: {str(e)}")
+        st.info("The 2x2 matrix feature requires pathway data to be properly loaded from the database.")
 
 def render_find_pathway_tab():
     from engineering_careers import engineering_career_pathways_page
@@ -409,16 +423,10 @@ def main():
         render_portfolio_tab()
 
     with tabs[3]:
-        # Simple text premium feature message
-        st.header("2×2 Matrix - Premium Feature")
-        st.write("This premium feature helps you compare different career paths based on key metrics.")
-        st.write("Premium features coming soon!")
+        render_2x2_matrix_tab()
     
     with tabs[4]:
-        # Simple text premium feature message
-        st.header("Find Your Pathway - Premium Feature")
-        st.write("This premium feature matches your preferences and skills with optimal career paths.")
-        st.write("Premium features coming soon!")
+        render_find_pathway_tab()
         
     with tabs[5]:
         # Simple text premium feature message
