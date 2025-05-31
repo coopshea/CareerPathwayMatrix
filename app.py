@@ -339,31 +339,12 @@ def render_2x2_matrix_tab():
                 default=categories[:5] if len(categories) > 5 else categories
             )
         
-        # Apply filters to get pathways
-        pathway_type_map = {
-            "Engineering Careers": "engineering_career",
-            "Job Postings": "job_posting",
-            "All": None
-        }
-        
-        filtered_pathways = fetch_pathways_unified(
-            pathway_type=pathway_type_map.get(pathway_type_filter),
-            super_category=super_category_filter[0] if len(super_category_filter) == 1 else None,
-            category=category_filter[0] if len(category_filter) == 1 else None
-        )
-        
-        # Further filter by multiple categories if needed
-        if len(category_filter) > 1:
-            filtered_pathways = [p for p in filtered_pathways if p.get('category') in category_filter]
-        if len(super_category_filter) > 1:
-            filtered_pathways = [p for p in filtered_pathways if p.get('super_category') in super_category_filter]
-            
-        if not filtered_pathways:
-            st.warning("No pathways match your filter criteria. Try adjusting the filters.")
-            return
-            
-        # Load basic metrics data for axis selection
+        # Load data using the original structure - display ALL pathways
         pathways_df, metrics_data, _ = load_all()
+        
+        if pathways_df is None or len(pathways_df) == 0:
+            st.warning("No pathway data available for visualization.")
+            return
         
         if not metrics_data:
             st.error("Unable to load metrics data for visualization.")
@@ -377,61 +358,15 @@ def render_2x2_matrix_tab():
         with cols[1]:
             y_metric = sb("Y‐Axis", list(metrics_data.keys()), key="matrix_y")
         
-        # Convert filtered pathways to DataFrame format that matches the original metrics system
-        import pandas as pd
-        df_data = []
-        for pathway in filtered_pathways:
-            # Map engineering career data to the original metrics system
-            salary = pathway.get('median_salary', 80000)
-            growth_rate = pathway.get('job_growth_rate', '5%')
-            wlb = pathway.get('work_life_balance_score', 5)
-            
-            # Convert to the original metrics format with values that match the existing system
-            formatted_metrics = {
-                'risk_level': {'value': max(1, min(10, 10 - wlb))},  # Higher WLB = Lower risk
-                'capital_requirements': {'value': max(1, min(10, salary / 20000))},  # Salary-based capital proxy
-                'technical_specialization': {'value': 7 if 'Engineer' in pathway['name'] else 5},
-                'network_dependency': {'value': 6 if 'Software' in pathway.get('super_category', '') else 4},
-                'scalability': {'value': 8 if 'Software' in pathway.get('super_category', '') else 5},
-                'control': {'value': wlb},
-                'geographic_dependency': {'value': 3 if 'Software' in pathway.get('super_category', '') else 7},
-                'skill_transfer': {'value': 8 if 'Engineering' in pathway.get('super_category', '') else 6},
-                'time_to_return': {'value': max(1, min(10, 11 - int(growth_rate.rstrip('%')) if growth_rate.rstrip('%').isdigit() else 5))},
-                'success_probability': {'value': max(1, min(10, int(growth_rate.rstrip('%')) if growth_rate.rstrip('%').isdigit() else 5))},
-                'optionality': {'value': 7 if 'Software' in pathway.get('super_category', '') else 5},
-                'terminal_value': {'value': max(1, min(10, salary / 15000))},
-                'expected_value_10yr': {'value': max(1, min(10, (salary + int(growth_rate.rstrip('%')) * 1000) / 20000 if growth_rate.rstrip('%').isdigit() else salary / 20000))},
-                'competition': {'value': 8 if 'Software' in pathway.get('super_category', '') else 6},
-                'social_impact': {'value': 8 if 'Environmental' in pathway.get('category', '') else 6},
-                'reversibility': {'value': wlb},
-                'team_dependency': {'value': 7 if 'Software' in pathway.get('super_category', '') else 5},
-                'regulatory_barriers': {'value': 3 if 'Software' in pathway.get('super_category', '') else 6},
-                'knowledge_half_life': {'value': 3 if 'Software' in pathway.get('super_category', '') else 7}
-            }
-            
-            df_data.append({
-                'id': pathway['id'],
-                'name': pathway['name'],
-                'category': pathway.get('super_category', pathway['category']),  # Use super_category for grouping
-                'metrics': formatted_metrics,
-                'is_job_posting': pathway.get('is_job_posting', False),
-                'pathway_type': pathway.get('pathway_type', 'general')
-            })
+        # Create visualization using original data structure
+        from visualizations import create_matrix_visualization
+        fig = create_matrix_visualization(pathways_df, x_metric, y_metric, metrics_data)
         
-        if df_data:
-            pathways_df_filtered = pd.DataFrame(df_data)
-            
-            # Create visualization
-            from visualizations import create_matrix_visualization
-            fig = create_matrix_visualization(pathways_df_filtered, x_metric, y_metric, metrics_data)
-            
-            if fig:
-                st.plotly_chart(fig, use_container_width=True)
-                st.info(f"Showing {len(filtered_pathways)} pathways based on your filter criteria.")
-            else:
-                st.info("Matrix visualization will appear once you select different metrics for the X and Y axes.")
+        if fig:
+            st.plotly_chart(fig, use_container_width=True)
+            st.info(f"Showing all {len(pathways_df)} career pathways.")
         else:
-            st.warning("No pathway data available for visualization.")
+            st.info("Matrix visualization will appear once you select different metrics for the X and Y axes.")
         
     except Exception as e:
         st.error(f"Error loading data for matrix visualization: {str(e)}")
@@ -450,6 +385,35 @@ def render_find_pathway_tab():
     if pathways_df is None or len(pathways_df) == 0:
         st.warning("No pathway data available.")
         return
+    
+    # Display pathway table first
+    st.subheader("Available Career Pathways")
+    
+    # Create display table
+    display_data = []
+    for _, pathway in pathways_df.iterrows():
+        metrics = pathway.get('metrics', {})
+        
+        # Extract key metrics for display
+        risk = metrics.get('risk_level', {}).get('value', 'N/A')
+        technical = metrics.get('technical_specialization', {}).get('value', 'N/A')
+        control = metrics.get('control', {}).get('value', 'N/A')
+        terminal_value = metrics.get('terminal_value', {}).get('value', 'N/A')
+        
+        display_data.append({
+            'Name': pathway['name'],
+            'Category': pathway.get('category', 'Unknown'),
+            'Risk Level': risk,
+            'Technical Spec': technical,
+            'Control': control,
+            'Terminal Value': terminal_value,
+            'Description': pathway.get('description', '')[:80] + '...' if len(str(pathway.get('description', ''))) > 80 else pathway.get('description', '')
+        })
+    
+    display_df = pd.DataFrame(display_data)
+    st.dataframe(display_df, use_container_width=True, hide_index=True)
+    
+    st.markdown("---")
     
     # Create the questionnaire
     st.subheader("Career Preferences Questionnaire")
