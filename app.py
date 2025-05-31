@@ -390,6 +390,7 @@ def render_find_pathway_tab():
     st.subheader("Available Career Pathways")
     
     # Create display table
+    import pandas as pd
     display_data = []
     for _, pathway in pathways_df.iterrows():
         metrics = pathway.get('metrics', {})
