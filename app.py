@@ -316,7 +316,13 @@ def render_2x2_matrix_tab():
             y_metric = sb("Y‐Axis", list(metrics_data.keys()), key="matrix_y")
         
         # Create visualization
-        create_matrix_visualization(pathways_df, x_metric, y_metric, metrics_data)
+        from visualizations import create_matrix_visualization
+        fig = create_matrix_visualization(pathways_df, x_metric, y_metric, metrics_data)
+        
+        if fig:
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("Matrix visualization will appear once you select different metrics for the X and Y axes.")
         
     except Exception as e:
         st.error(f"Error loading data for matrix visualization: {str(e)}")

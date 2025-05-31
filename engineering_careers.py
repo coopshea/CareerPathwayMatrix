@@ -371,7 +371,7 @@ def create_weighted_scoring_system():
             
             # Remote work scoring
             remote_scores = {"Full Remote": 10, "Hybrid": 7, "On-site": 3}
-            remote_score = remote_scores.get(data['remote_potential'], 5)
+            remote_score = 5  # Default score since remote_potential was removed
             
             # Innovation scoring (based on category and growth)
             innovation_scores = {
