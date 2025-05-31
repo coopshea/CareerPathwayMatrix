@@ -395,19 +395,19 @@ def render_find_pathway_tab():
     for _, pathway in pathways_df.iterrows():
         metrics = pathway.get('metrics', {})
         
-        # Extract key metrics for display
-        risk = metrics.get('risk_level', {}).get('value', 'N/A')
-        technical = metrics.get('technical_specialization', {}).get('value', 'N/A')
-        control = metrics.get('control', {}).get('value', 'N/A')
-        terminal_value = metrics.get('terminal_value', {}).get('value', 'N/A')
+        # Extract key metrics for display - convert to numbers or use None
+        risk = metrics.get('risk_level', {}).get('value')
+        technical = metrics.get('technical_specialization', {}).get('value')
+        control = metrics.get('control', {}).get('value')
+        terminal_value = metrics.get('terminal_value', {}).get('value')
         
         display_data.append({
             'Name': pathway['name'],
             'Category': pathway.get('category', 'Unknown'),
-            'Risk Level': risk,
-            'Technical Spec': technical,
-            'Control': control,
-            'Terminal Value': terminal_value,
+            'Risk Level': risk if risk is not None else 0,
+            'Technical Spec': technical if technical is not None else 0,
+            'Control': control if control is not None else 0,
+            'Terminal Value': terminal_value if terminal_value is not None else 0,
             'Description': pathway.get('description', '')[:80] + '...' if len(str(pathway.get('description', ''))) > 80 else pathway.get('description', '')
         })
     
