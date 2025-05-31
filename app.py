@@ -304,7 +304,7 @@ def render_2x2_matrix_tab():
         # Load the data
         pathways_df, metrics_data, categories = load_all()
         
-        if not pathways_df or not metrics_data:
+        if pathways_df is None or len(pathways_df) == 0 or not metrics_data:
             st.error("Unable to load pathway data. Please check your database connection.")
             return
         
