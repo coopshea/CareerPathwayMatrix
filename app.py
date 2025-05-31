@@ -303,41 +303,7 @@ def render_2x2_matrix_tab():
     try:
         from database import fetch_pathways_unified
         
-        # Add filtering options
-        st.subheader("Filter Options")
-        filter_cols = st.columns(3)
-        
-        with filter_cols[0]:
-            pathway_type_filter = st.selectbox(
-                "Pathway Type",
-                options=["All", "Engineering Careers", "Job Postings"],
-                index=0
-            )
-            
-        with filter_cols[1]:
-            # Get available super categories from database
-            all_pathways = fetch_pathways_unified()
-            super_categories = sorted(list(set([p.get('super_category') for p in all_pathways if p.get('super_category')])))
-            
-            super_category_filter = st.multiselect(
-                "Super Categories",
-                options=super_categories,
-                default=super_categories
-            )
-            
-        with filter_cols[2]:
-            # Get available categories based on super category filter
-            if super_category_filter:
-                filtered_for_categories = [p for p in all_pathways if p.get('super_category') in super_category_filter]
-            else:
-                filtered_for_categories = all_pathways
-            categories = sorted(list(set([p.get('category') for p in filtered_for_categories if p.get('category')])))
-            
-            category_filter = st.multiselect(
-                "Categories",
-                options=categories,
-                default=categories[:5] if len(categories) > 5 else categories
-            )
+
         
         # Load data using the original structure - display ALL pathways
         pathways_df, metrics_data, _ = load_all()
@@ -350,13 +316,19 @@ def render_2x2_matrix_tab():
             st.error("Unable to load metrics data for visualization.")
             return
         
-        # Choose axes
+        # Choose axes with default values
         st.subheader("Visualization Axes")
         cols = st.columns(2)
+        
+        # Set default indices for the desired metrics
+        metric_keys = list(metrics_data.keys())
+        default_x_index = metric_keys.index('time_to_return') if 'time_to_return' in metric_keys else 0
+        default_y_index = metric_keys.index('expected_value_10yr') if 'expected_value_10yr' in metric_keys else 1
+        
         with cols[0]:
-            x_metric = sb("X‐Axis", list(metrics_data.keys()), key="matrix_x")
+            x_metric = sb("X‐Axis", metric_keys, default_x_index, key="matrix_x")
         with cols[1]:
-            y_metric = sb("Y‐Axis", list(metrics_data.keys()), key="matrix_y")
+            y_metric = sb("Y‐Axis", metric_keys, default_y_index, key="matrix_y")
         
         # Create visualization using original data structure
         from visualizations import create_matrix_visualization
@@ -367,6 +339,43 @@ def render_2x2_matrix_tab():
             st.info(f"Showing all {len(pathways_df)} career pathways.")
         else:
             st.info("Matrix visualization will appear once you select different metrics for the X and Y axes.")
+        
+        # Filter Controls moved below the plot
+        st.markdown("---")
+        st.subheader("Advanced Filter Options")
+        st.caption("Note: These filters are for future use - currently showing all pathways above.")
+        filter_cols = st.columns(3)
+        
+        with filter_cols[0]:
+            pathway_type_filter = st.selectbox(
+                "Pathway Type",
+                options=["All", "Engineering Careers", "Job Postings"],
+                index=0,
+                key="matrix_pathway_type_filter"
+            )
+            
+        with filter_cols[1]:
+            # Get available super categories from database
+            all_pathways = fetch_pathways_unified()
+            super_categories = sorted(list(set([p.get('super_category') for p in all_pathways if p.get('super_category')])))
+            
+            super_category_filter = st.multiselect(
+                "Super Categories",
+                options=super_categories,
+                default=super_categories[:3] if len(super_categories) > 3 else super_categories,
+                key="matrix_super_category_filter"
+            )
+            
+        with filter_cols[2]:
+            # Get available categories
+            categories = sorted(list(set([p.get('category') for p in all_pathways if p.get('category')])))
+            
+            category_filter = st.multiselect(
+                "Categories",
+                options=categories,
+                default=categories[:5] if len(categories) > 5 else categories,
+                key="matrix_category_filter"
+            )
         
     except Exception as e:
         st.error(f"Error loading data for matrix visualization: {str(e)}")
